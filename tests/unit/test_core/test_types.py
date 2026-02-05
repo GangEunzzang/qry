@@ -1,10 +1,9 @@
 """Tests for core types."""
 
-from qry.core.types import ColumnInfo, TableInfo
+from qry.core.core_types import ColumnInfo, TableInfo
 
 
 def test_table_info_creation():
-    """Test TableInfo creation."""
     table = TableInfo(name="users", schema="public")
     assert table.name == "users"
     assert table.schema == "public"
@@ -12,7 +11,6 @@ def test_table_info_creation():
 
 
 def test_table_info_frozen():
-    """Test TableInfo is immutable."""
     table = TableInfo(name="users")
     try:
         table.name = "other"
@@ -22,7 +20,6 @@ def test_table_info_frozen():
 
 
 def test_column_info_creation():
-    """Test ColumnInfo creation."""
     col = ColumnInfo(
         name="id",
         data_type="INTEGER",

@@ -1,10 +1,9 @@
 """Tests for QueryResult."""
 
-from qry.query.result import QueryResult
+from qry.query.query_result import QueryResult
 
 
 def test_query_result_success():
-    """Test successful query result."""
     result = QueryResult(
         columns=["id", "name"],
         rows=[(1, "Alice"), (2, "Bob")],
@@ -18,7 +17,6 @@ def test_query_result_success():
 
 
 def test_query_result_error():
-    """Test error query result."""
     result = QueryResult(error="Table not found")
 
     assert not result.is_success
@@ -26,7 +24,6 @@ def test_query_result_error():
 
 
 def test_query_result_empty():
-    """Test empty query result."""
     result = QueryResult(
         columns=["id"],
         rows=[],

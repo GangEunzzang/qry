@@ -4,21 +4,18 @@ from pathlib import Path
 
 import pytest
 
-from qry.connection.config import ConnectionConfig, DatabaseType
-from qry.core.context import AppContext
-from qry.settings.config import Settings
+from qry.connection.connection_config import ConnectionConfig, DatabaseType
+from qry.core.core_context import AppContext
+from qry.settings.settings_config import Settings
 
 
 class TestAppContext:
-    """Tests for AppContext."""
 
     @pytest.fixture
     def context(self) -> AppContext:
-        """Create AppContext with default settings."""
         return AppContext.create(settings=Settings())
 
     def test_create_with_default_settings(self):
-        """Test creating context with default settings."""
         ctx = AppContext.create()
 
         assert ctx.settings is not None
@@ -26,7 +23,6 @@ class TestAppContext:
         assert not ctx.is_connected
 
     def test_connect_sqlite(self, context: AppContext, sample_sqlite_db: Path):
-        """Test connecting to SQLite database."""
         config = ConnectionConfig(
             name="test",
             db_type=DatabaseType.SQLITE,
@@ -41,7 +37,6 @@ class TestAppContext:
         assert context.current_connection == config
 
     def test_disconnect(self, context: AppContext, sample_sqlite_db: Path):
-        """Test disconnecting from database."""
         config = ConnectionConfig(
             name="test",
             db_type=DatabaseType.SQLITE,
@@ -56,8 +51,6 @@ class TestAppContext:
         assert context.query_service is None
 
     def test_connect_replaces_existing(self, context: AppContext, tmp_path: Path):
-        """Test that connecting replaces existing connection."""
-        # Create two databases
         db1 = tmp_path / "db1.db"
         db2 = tmp_path / "db2.db"
 

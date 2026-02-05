@@ -4,28 +4,24 @@ from pathlib import Path
 
 import pytest
 
-from qry.database.sqlite import SQLiteAdapter
+from qry.database.database_sqlite import SQLiteAdapter
 
 
 class TestSQLiteAdapter:
-    """Tests for SQLiteAdapter."""
 
     def test_connect_success(self, sample_sqlite_db: Path):
-        """Test successful connection."""
         adapter = SQLiteAdapter(sample_sqlite_db)
         adapter.connect()
         assert adapter.is_connected()
         adapter.disconnect()
 
     def test_disconnect(self, sample_sqlite_db: Path):
-        """Test disconnection."""
         adapter = SQLiteAdapter(sample_sqlite_db)
         adapter.connect()
         adapter.disconnect()
         assert not adapter.is_connected()
 
     def test_execute_select(self, sample_sqlite_db: Path):
-        """Test SELECT query execution."""
         adapter = SQLiteAdapter(sample_sqlite_db)
         adapter.connect()
 
@@ -39,7 +35,6 @@ class TestSQLiteAdapter:
         adapter.disconnect()
 
     def test_execute_invalid_query(self, sample_sqlite_db: Path):
-        """Test invalid query returns error."""
         adapter = SQLiteAdapter(sample_sqlite_db)
         adapter.connect()
 
@@ -52,7 +47,6 @@ class TestSQLiteAdapter:
         adapter.disconnect()
 
     def test_get_tables(self, sample_sqlite_db: Path):
-        """Test getting table list."""
         adapter = SQLiteAdapter(sample_sqlite_db)
         adapter.connect()
 
@@ -64,7 +58,6 @@ class TestSQLiteAdapter:
         adapter.disconnect()
 
     def test_get_columns(self, sample_sqlite_db: Path):
-        """Test getting column list."""
         adapter = SQLiteAdapter(sample_sqlite_db)
         adapter.connect()
 
