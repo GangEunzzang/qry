@@ -2,20 +2,17 @@
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical
-from textual.screen import Screen
+from textual.containers import Horizontal, Vertical
+from textual.widget import Widget
 
-from qry.database.base import DatabaseAdapter
-from qry.query.executor import QueryExecutor
-from qry.query.history import HistoryManager
-from qry.settings.config import Settings
+from qry.core.context import AppContext
 from qry.ui.widgets.editor import SqlEditor
 from qry.ui.widgets.results import ResultsTable
 from qry.ui.widgets.sidebar import DatabaseSidebar
 from qry.ui.widgets.statusbar import StatusBar
 
 
-class MainScreen(Screen):
+class MainScreen(Widget):
     """Main application screen."""
 
     DEFAULT_CSS = """
@@ -23,14 +20,17 @@ class MainScreen(Screen):
         layout: grid;
         grid-size: 1;
         grid-rows: 1fr auto;
+        height: 100%;
     }
 
     #main-container {
         layout: horizontal;
+        height: 100%;
     }
 
     #content {
         width: 1fr;
+        height: 100%;
     }
     """
 
@@ -39,43 +39,50 @@ class MainScreen(Screen):
         Binding("f1", "help", "Help"),
     ]
 
-    def __init__(
-        self,
-        adapter: DatabaseAdapter | None = None,
-        settings: Settings | None = None,
-    ) -> None:
-        super().__init__()
-        self._adapter = adapter
-        self._settings = settings or Settings()
-        self._executor: QueryExecutor | None = None
-        self._history = HistoryManager(max_entries=self._settings.history.max_entries)
+    def __init__(self, ctx: AppContext) -> None:
+        """Initialize main screen.
 
-        if adapter:
-            self._executor = QueryExecutor(adapter, self._history)
+        Args:
+            ctx: Application context.
+        """
+        super().__init__()
+        self._ctx = ctx
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="main-container"):
             yield DatabaseSidebar(id="sidebar")
             with Vertical(id="content"):
-                yield SqlEditor(settings=self._settings.editor, id="editor")
+                yield SqlEditor(settings=self._ctx.settings.editor, id="editor")
                 yield ResultsTable(id="results")
         yield StatusBar(id="statusbar")
 
     def on_mount(self) -> None:
-        if self._adapter:
+        """Set up screen on mount."""
+        self._update_sidebar()
+        self._update_statusbar()
+
+    def _update_sidebar(self) -> None:
+        """Update sidebar with current adapter."""
+        if self._ctx.is_connected and self._ctx.adapter:
             sidebar = self.query_one("#sidebar", DatabaseSidebar)
-            sidebar.set_adapter(self._adapter)
+            sidebar.set_adapter(self._ctx.adapter)
+
+    def _update_statusbar(self) -> None:
+        """Update status bar."""
+        statusbar = self.query_one("#statusbar", StatusBar)
+        if self._ctx.current_connection:
+            statusbar.set_connection(self._ctx.current_connection.name)
 
     def on_sql_editor_execute_requested(
         self,
         message: SqlEditor.ExecuteRequested,
     ) -> None:
         """Handle query execution request."""
-        if not self._executor:
+        if not self._ctx.query_service:
             self.app.notify("No database connection", severity="error")
             return
 
-        result = self._executor.execute(message.query)
+        result = self._ctx.query_service.execute(message.query)
         results_table = self.query_one("#results", ResultsTable)
         results_table.set_result(result)
 
@@ -100,14 +107,7 @@ class MainScreen(Screen):
         """Show help."""
         self.app.notify("Press Ctrl+Enter to run query, Ctrl+B for sidebar")
 
-    def set_adapter(self, adapter: DatabaseAdapter) -> None:
-        """Set database adapter.
-
-        Args:
-            adapter: Database adapter.
-        """
-        self._adapter = adapter
-        self._executor = QueryExecutor(adapter, self._history)
-
-        sidebar = self.query_one("#sidebar", DatabaseSidebar)
-        sidebar.set_adapter(adapter)
+    def refresh_connection(self) -> None:
+        """Refresh UI after connection change."""
+        self._update_sidebar()
+        self._update_statusbar()

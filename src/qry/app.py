@@ -1,14 +1,11 @@
 """Main Textual application."""
 
-from pathlib import Path
-
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Footer, Header
 
 from qry.connection.config import ConnectionConfig, DatabaseType
-from qry.database.base import DatabaseAdapter
-from qry.database.sqlite import SQLiteAdapter
+from qry.core.context import AppContext
 from qry.settings.config import Settings
 from qry.ui.screens.main import MainScreen
 
@@ -18,7 +15,6 @@ class QryApp(App):
 
     TITLE = "qry"
     SUB_TITLE = "SQL TUI Client"
-    CSS_PATH = "ui/themes/dark.tcss"
 
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", priority=True),
@@ -26,69 +22,63 @@ class QryApp(App):
         Binding("f1", "help", "Help"),
     ]
 
+    CSS = """
+    Screen {
+        background: $surface;
+    }
+    """
+
     def __init__(
         self,
         connection: ConnectionConfig | None = None,
-        settings: Settings | None = None,
+        ctx: AppContext | None = None,
     ) -> None:
+        """Initialize application.
+
+        Args:
+            connection: Initial connection to establish.
+            ctx: Application context. Creates new one if not provided.
+        """
         super().__init__()
-        self._connection = connection
-        self._settings = settings or Settings.load()
-        self._adapter: DatabaseAdapter | None = None
+        self._initial_connection = connection
+        self._ctx = ctx or AppContext.create()
+
+    @property
+    def ctx(self) -> AppContext:
+        """Get application context."""
+        return self._ctx
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield MainScreen(adapter=self._adapter, settings=self._settings)
+        yield MainScreen(ctx=self._ctx)
         yield Footer()
 
     def on_mount(self) -> None:
-        if self._connection:
-            self._connect(self._connection)
+        """Connect to database on mount if connection provided."""
+        if self._initial_connection:
+            self._connect(self._initial_connection)
 
     def _connect(self, config: ConnectionConfig) -> None:
-        """Connect to database.
-
-        Args:
-            config: Connection configuration.
-        """
+        """Connect to database."""
         try:
-            adapter = self._create_adapter(config)
-            adapter.connect()
-            self._adapter = adapter
-
-            main_screen = self.query_one(MainScreen)
-            main_screen.set_adapter(adapter)
-
+            self._ctx.connect(config)
             self.notify(f"Connected to {config.name}")
+
+            # Refresh main screen
+            main_screen = self.query_one(MainScreen)
+            main_screen.refresh_connection()
         except Exception as e:
             self.notify(f"Connection failed: {e}", severity="error")
 
-    def _create_adapter(self, config: ConnectionConfig) -> DatabaseAdapter:
-        """Create database adapter for config.
-
-        Args:
-            config: Connection configuration.
-
-        Returns:
-            Database adapter instance.
-        """
-        if config.db_type == DatabaseType.SQLITE:
-            if not config.path:
-                raise ValueError("SQLite requires path")
-            return SQLiteAdapter(config.path)
-
-        raise ValueError(f"Unsupported database type: {config.db_type}")
-
     def action_quit(self) -> None:
         """Quit the application."""
-        if self._adapter:
-            self._adapter.disconnect()
+        self._ctx.disconnect()
         self.exit()
 
     def action_cancel(self) -> None:
         """Cancel current operation."""
-        if self._adapter:
-            self._adapter.cancel()
+        if self._ctx.query_service:
+            self._ctx.query_service.cancel()
         self.exit()
 
     def action_help(self) -> None:
@@ -107,7 +97,7 @@ def run(
 
     Args:
         connection: Connection configuration.
-        db_path: Path to SQLite database (shortcut).
+        db_path: Path to SQLite database (shortcut for quick access).
     """
     if db_path and not connection:
         connection = ConnectionConfig(
