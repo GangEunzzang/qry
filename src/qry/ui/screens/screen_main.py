@@ -56,14 +56,18 @@ class MainScreen(Widget):
         self._update_statusbar()
 
     def _update_sidebar(self) -> None:
+        sidebar = self.query_one("#sidebar", DatabaseSidebar)
         if self._ctx.is_connected and self._ctx.adapter:
-            sidebar = self.query_one("#sidebar", DatabaseSidebar)
             sidebar.set_adapter(self._ctx.adapter)
+        else:
+            sidebar.clear_adapter()
 
     def _update_statusbar(self) -> None:
         statusbar = self.query_one("#statusbar", StatusBar)
         if self._ctx.current_connection:
             statusbar.set_connection(self._ctx.current_connection.name)
+        else:
+            statusbar.clear_connection()
 
     def on_sql_editor_execute_requested(
         self,
@@ -86,7 +90,8 @@ class MainScreen(Widget):
         message: DatabaseSidebar.TableSelected,
     ) -> None:
         editor = self.query_one("#editor", SqlEditor)
-        editor.set_query(f"SELECT * FROM {message.table_name} LIMIT 100;")
+        safe_name = message.table_name.replace('"', '""')
+        editor.set_query(f'SELECT * FROM "{safe_name}" LIMIT 100;')
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar", DatabaseSidebar)

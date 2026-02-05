@@ -1,5 +1,7 @@
 """Tests for core types."""
 
+import pytest
+
 from qry.core.core_types import ColumnInfo, TableInfo
 
 
@@ -12,11 +14,8 @@ def test_table_info_creation():
 
 def test_table_info_frozen():
     table = TableInfo(name="users")
-    try:
+    with pytest.raises(AttributeError):
         table.name = "other"
-        assert False, "Should raise error"
-    except AttributeError:
-        pass
 
 
 def test_column_info_creation():

@@ -80,7 +80,8 @@ class SQLiteAdapter(DatabaseAdapter):
         if not self._conn:
             return []
 
-        cursor = self._conn.execute(f"PRAGMA table_info({table_name})")
+        safe_name = table_name.replace('"', '""')
+        cursor = self._conn.execute(f'PRAGMA table_info("{safe_name}")')
         columns = []
         for row in cursor.fetchall():
             columns.append(

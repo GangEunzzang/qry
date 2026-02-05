@@ -29,26 +29,25 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-postgres = ["psycopg[binary]>=3.2", "asyncpg>=0.30"]
-mysql = ["pymysql>=1.1", "aiomysql>=0.2"]
-all = ["qry[postgres,mysql]"]
+postgres = ["psycopg[binary]>=3.2"]
+mysql = ["pymysql>=1.1"]
+all = ["qry[postgres]", "qry[mysql]"]
 dev = [
     "pytest>=8.0",
-    "pytest-asyncio>=0.24",
-    "pytest-cov>=6.0",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=1.0",
     "ruff>=0.8",
     "pyright>=1.1",
     "pre-commit>=4.0",
-    "textual-dev>=1.7",
 ]
 
 [project.scripts]
 qry = "qry.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/qry"
-Repository = "https://github.com/yourusername/qry"
-Documentation = "https://github.com/yourusername/qry#readme"
+Homepage = "https://github.com/GangEunzzang/qry"
+Repository = "https://github.com/GangEunzzang/qry"
+Documentation = "https://github.com/GangEunzzang/qry#readme"
 
 [build-system]
 requires = ["hatchling"]
@@ -58,36 +57,23 @@ build-backend = "hatchling.build"
 packages = ["src/qry"]
 
 [tool.ruff]
-target-version = "py311"
 line-length = 100
-src = ["src", "tests"]
+target-version = "py311"
 
 [tool.ruff.lint]
-select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # Pyflakes
-    "I",      # isort
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
-    "ARG",    # flake8-unused-arguments
-    "SIM",    # flake8-simplify
-]
-ignore = [
-    "E501",   # line too long (handled by formatter)
-]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["qry"]
 
 [tool.pyright]
 pythonVersion = "3.11"
-typeCheckingMode = "standard"
+typeCheckingMode = "basic"
 include = ["src"]
-exclude = ["**/__pycache__"]
+exclude = ["tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 asyncio_mode = "auto"
-addopts = "-v --tb=short"

@@ -23,12 +23,18 @@ class ConnectionManager:
         if not path.exists():
             return
 
-        with open(path) as f:
-            data = yaml.safe_load(f) or {}
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+        except (OSError, yaml.YAMLError):
+            data = {}
 
         for conn_data in data.get("connections", []):
-            conn = ConnectionConfig.from_dict(conn_data)
-            self._connections[conn.name] = conn
+            try:
+                conn = ConnectionConfig.from_dict(conn_data)
+                self._connections[conn.name] = conn
+            except (KeyError, ValueError):
+                continue
 
     def save(self) -> None:
         path = self._get_connections_path()

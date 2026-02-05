@@ -18,4 +18,4 @@ class JsonExporter(Exporter):
         return json.dumps(self._to_dict(result), indent=2, default=str)
 
     def _to_dict(self, result: QueryResult) -> list[dict[str, Any]]:
-        return [dict(zip(result.columns, row)) for row in result.rows]
+        return [dict(zip(result.columns, row, strict=True)) for row in result.rows]

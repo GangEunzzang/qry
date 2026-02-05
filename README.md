@@ -4,65 +4,57 @@ A fast and beautiful SQL TUI client for developers.
 
 ## Features
 
-- **Multi-database support**: SQLite, PostgreSQL, MySQL
-- **Vim-style keybindings**: Modal editing for terminal purists
-- **SQL autocomplete**: Context-aware completion for tables and columns
-- **Query history**: Searchable, per-connection history
-- **Modern TUI**: Built with Textual, featuring themes and responsive layouts
+- Multi-database support: SQLite (PostgreSQL, MySQL planned)
+- SQL syntax highlighting
+- Query autocompletion
+- Query history with search
+- Saved connections with secure password storage
+- Export results to CSV/JSON
 
 ## Installation
 
 ```bash
-# With uv (recommended)
-uv tool install qry
-
-# With pipx
-pipx install qry
-
-# With pip
 pip install qry
 ```
 
-### Database drivers
-
-Install optional database drivers as needed:
+### Database Drivers
 
 ```bash
-# PostgreSQL
-uv tool install 'qry[postgres]'
+# PostgreSQL support (planned)
+pip install 'qry[postgres]'
 
-# MySQL
-uv tool install 'qry[mysql]'
+# MySQL support (planned)
+pip install 'qry[mysql]'
 
 # All databases
-uv tool install 'qry[all]'
+pip install 'qry[all]'
 ```
 
 ## Usage
 
 ```bash
-# Start qry
-qry
+# Open SQLite database
+qry database.db
 
-# Connect to a specific database
-qry --connection my-postgres-db
+# Use saved connection
+qry -c mydb
 ```
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| Ctrl+Enter | Execute query |
+| Ctrl+B | Toggle sidebar |
+| Ctrl+Q | Quit |
+| F1 | Help |
 
 ## Development
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/qry.git
+git clone https://github.com/GangEunzzang/qry.git
 cd qry
-
-# Install with dev dependencies
-uv sync --all-extras
-
-# Run tests
-uv run pytest
-
-# Run the app
-uv run qry
+pip install -e '.[dev]'
 ```
 
 ## License

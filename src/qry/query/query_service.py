@@ -22,13 +22,13 @@ class QueryService:
 
     def execute(self, sql: str) -> QueryResult:
         self._current_query = sql
-        result = self.adapter.execute(sql)
-
-        if result.is_success:
-            self.history.add(sql)
-
-        self._current_query = None
-        return result
+        try:
+            result = self.adapter.execute(sql)
+            if result.is_success:
+                self.history.add(sql)
+            return result
+        finally:
+            self._current_query = None
 
     def cancel(self) -> None:
         self.adapter.cancel()

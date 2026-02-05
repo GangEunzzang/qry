@@ -27,6 +27,10 @@ class StatusBar(Static):
         self._connection_name = name
         self._update_display()
 
+    def clear_connection(self) -> None:
+        self._connection_name = None
+        self._update_display()
+
     def set_message(self, message: str) -> None:
         self._message = message
         self._update_display()

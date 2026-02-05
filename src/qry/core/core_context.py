@@ -29,25 +29,33 @@ class AppContext:
             connection_manager=ConnectionManager(),
         )
 
-    def connect(self, config: ConnectionConfig, password: str | None = None) -> None:
+    def connect(self, config: ConnectionConfig) -> None:
         self.disconnect()
         adapter = AdapterFactory.create(config)
         adapter.connect()
 
-        self._adapter = adapter
-        self._current_connection = config
-        self._query_service = QueryService(adapter=adapter)
-        self._query_service.history.set_connection(config.name)
+        try:
+            self._adapter = adapter
+            self._current_connection = config
+            self._query_service = QueryService(adapter=adapter)
+            self._query_service.history.set_connection(config.name)
+        except Exception:
+            adapter.disconnect()
+            self._adapter = None
+            self._current_connection = None
+            self._query_service = None
+            raise
 
     def disconnect(self) -> None:
-        if self._query_service:
-            self._query_service.save_history()
-        if self._adapter:
-            self._adapter.disconnect()
-
-        self._adapter = None
-        self._query_service = None
-        self._current_connection = None
+        try:
+            if self._query_service:
+                self._query_service.save_history()
+        finally:
+            if self._adapter:
+                self._adapter.disconnect()
+            self._adapter = None
+            self._query_service = None
+            self._current_connection = None
 
     @property
     def is_connected(self) -> bool:

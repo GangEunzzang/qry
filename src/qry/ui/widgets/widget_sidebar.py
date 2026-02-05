@@ -49,6 +49,11 @@ class DatabaseSidebar(Static):
         self._adapter = adapter
         self.refresh_tree()
 
+    def clear_adapter(self) -> None:
+        self._adapter = None
+        if self._tree:
+            self._tree.clear()
+
     def refresh_tree(self) -> None:
         if not self._tree or not self._adapter:
             return
