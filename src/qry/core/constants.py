@@ -1,0 +1,15 @@
+"""Application constants."""
+
+APP_NAME = "qry"
+VERSION = "0.1.0"
+
+# Default settings
+DEFAULT_THEME = "dark"
+DEFAULT_TAB_SIZE = 2
+DEFAULT_PAGE_SIZE = 100
+DEFAULT_MAX_COLUMN_WIDTH = 50
+DEFAULT_HISTORY_SIZE = 1000
+DEFAULT_TIMEOUT_MS = 30000
+
+# Display
+NULL_DISPLAY = "NULL"

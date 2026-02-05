@@ -1,0 +1,13 @@
+/* qry dark theme */
+
+Screen {
+    background: $surface;
+}
+
+Header {
+    background: $primary;
+}
+
+Footer {
+    background: $surface;
+}
