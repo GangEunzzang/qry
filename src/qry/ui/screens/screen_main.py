@@ -6,6 +6,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
 
 from qry.context import AppContext
+from qry.ui.screens.screen_export import ExportScreen
 from qry.ui.widgets.widget_editor import SqlEditor
 from qry.ui.widgets.widget_results import ResultsTable
 from qry.ui.widgets.widget_sidebar import DatabaseSidebar
@@ -92,6 +93,17 @@ class MainScreen(Widget):
         editor = self.query_one("#editor", SqlEditor)
         safe_name = message.table_name.replace('"', '""')
         editor.set_query(f'SELECT * FROM "{safe_name}" LIMIT 100;')
+
+    def on_results_table_export_requested(
+        self,
+        message: ResultsTable.ExportRequested,
+    ) -> None:
+        def _on_export_dismiss(result: str | None) -> None:
+            if result:
+                statusbar = self.query_one("#statusbar", StatusBar)
+                statusbar.set_message(f"Exported to {result}")
+
+        self.app.push_screen(ExportScreen(message.result), callback=_on_export_dismiss)
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar", DatabaseSidebar)
