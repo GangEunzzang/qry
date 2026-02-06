@@ -1,92 +1,69 @@
 """Database adapter factory."""
 
-from collections.abc import Callable
-from typing import ClassVar
-
 from qry.domains.connection.models import ConnectionConfig, DatabaseType
 from qry.domains.database.base import DatabaseAdapter
 
-# Type aliases for registry
-AdapterCreator = Callable[[ConnectionConfig], DatabaseAdapter]
-AvailabilityChecker = Callable[[], bool]
 
-
-def _check_sqlite() -> bool:
-    return True
-
-
-def _check_postgres() -> bool:
+def _try_import(module: str) -> bool:
+    """Check if a module can be imported."""
     try:
-        import psycopg  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
-
-
-def _check_mysql() -> bool:
-    try:
-        import pymysql  # noqa: F401
-
+        __import__(module)
         return True
     except ImportError:
         return False
 
 
 class AdapterFactory:
-    """Factory for creating database adapters using registry pattern."""
+    """Factory for creating database adapters."""
 
-    _creators: ClassVar[dict[DatabaseType, AdapterCreator]] = {}
-    _availability: ClassVar[dict[DatabaseType, AvailabilityChecker]] = {
-        DatabaseType.SQLITE: _check_sqlite,
-        DatabaseType.POSTGRES: _check_postgres,
-        DatabaseType.MYSQL: _check_mysql,
+    # Module requirements for each database type
+    _REQUIRED_MODULES = {
+        DatabaseType.POSTGRES: "psycopg",
+        DatabaseType.MYSQL: "pymysql",
     }
 
     @classmethod
-    def register(cls, db_type: DatabaseType, creator: AdapterCreator) -> None:
-        """Register a new adapter creator for a database type."""
-        cls._creators[db_type] = creator
+    def create(cls, config: ConnectionConfig) -> DatabaseAdapter:
+        """Create adapter for the given configuration."""
+        match config.db_type:
+            case DatabaseType.SQLITE:
+                return cls._create_sqlite(config)
+            case DatabaseType.POSTGRES:
+                return cls._create_postgres(config)
+            case DatabaseType.MYSQL:
+                return cls._create_mysql(config)
+            case _:
+                raise ValueError(f"Unsupported database type: {config.db_type}")
 
     @classmethod
-    def create(cls, config: ConnectionConfig) -> DatabaseAdapter:
-        creator = cls._creators.get(config.db_type)
-        if not creator:
-            raise ValueError(f"Unsupported database type: {config.db_type}")
-        return creator(config)
+    def _create_sqlite(cls, config: ConnectionConfig) -> DatabaseAdapter:
+        from qry.domains.database.sqlite import SQLiteAdapter
+
+        if not config.path:
+            raise ValueError("SQLite requires 'path' in configuration")
+        return SQLiteAdapter(config.path)
+
+    @classmethod
+    def _create_postgres(cls, config: ConnectionConfig) -> DatabaseAdapter:
+        raise ImportError(
+            "PostgreSQL support requires 'psycopg'. Install with: pip install 'qry[postgres]'"
+        )
+
+    @classmethod
+    def _create_mysql(cls, config: ConnectionConfig) -> DatabaseAdapter:
+        raise ImportError(
+            "MySQL support requires 'pymysql'. Install with: pip install 'qry[mysql]'"
+        )
 
     @classmethod
     def supported_types(cls) -> list[DatabaseType]:
-        return list(cls._creators.keys())
+        """Get list of all supported database types."""
+        return list(DatabaseType)
 
     @classmethod
     def is_available(cls, db_type: DatabaseType) -> bool:
-        checker = cls._availability.get(db_type)
-        return checker() if checker else False
-
-
-# --- Adapter Creators ---
-
-
-def _create_sqlite(config: ConnectionConfig) -> DatabaseAdapter:
-    from qry.domains.database.sqlite import SQLiteAdapter
-
-    if not config.path:
-        raise ValueError("SQLite requires 'path' in configuration")
-    return SQLiteAdapter(config.path)
-
-
-def _create_postgres(config: ConnectionConfig) -> DatabaseAdapter:
-    raise ImportError(
-        "PostgreSQL support requires 'psycopg'. Install with: pip install 'qry[postgres]'"
-    )
-
-
-def _create_mysql(config: ConnectionConfig) -> DatabaseAdapter:
-    raise ImportError("MySQL support requires 'pymysql'. Install with: pip install 'qry[mysql]'")
-
-
-# --- Register adapters ---
-AdapterFactory.register(DatabaseType.SQLITE, _create_sqlite)
-AdapterFactory.register(DatabaseType.POSTGRES, _create_postgres)
-AdapterFactory.register(DatabaseType.MYSQL, _create_mysql)
+        """Check if a database type is available (dependencies installed)."""
+        if db_type == DatabaseType.SQLITE:
+            return True  # Built-in, always available
+        module = cls._REQUIRED_MODULES.get(db_type)
+        return _try_import(module) if module else False
