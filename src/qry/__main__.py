@@ -4,9 +4,9 @@ import argparse
 import sys
 
 from qry.app import run
-from qry.connection.connection_config import ConnectionConfig, DatabaseType
-from qry.connection.connection_manager import ConnectionManager
-from qry.core.core_constants import VERSION
+from qry.domains.connection.models import ConnectionConfig, DatabaseType
+from qry.domains.connection.service import ConnectionManager
+from qry.shared.constants import VERSION
 
 
 def main() -> int:

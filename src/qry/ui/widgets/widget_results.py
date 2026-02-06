@@ -5,7 +5,7 @@ from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import DataTable, Static
 
-from qry.query.query_result import QueryResult
+from qry.domains.query.models import QueryResult
 
 
 class ResultsTable(Static):

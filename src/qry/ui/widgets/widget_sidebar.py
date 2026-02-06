@@ -4,8 +4,8 @@ from textual.app import ComposeResult
 from textual.message import Message
 from textual.widgets import Static, Tree
 
-from qry.core.core_types import TableInfo
-from qry.database.database_base import DatabaseAdapter
+from qry.domains.database.base import DatabaseAdapter
+from qry.shared.types import TableInfo
 
 
 class DatabaseSidebar(Static):

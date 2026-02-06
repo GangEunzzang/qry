@@ -4,8 +4,8 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Footer, Header
 
-from qry.connection.connection_config import ConnectionConfig, DatabaseType
-from qry.core.core_context import AppContext
+from qry.context import AppContext
+from qry.domains.connection.models import ConnectionConfig, DatabaseType
 from qry.ui.screens.screen_main import MainScreen
 
 

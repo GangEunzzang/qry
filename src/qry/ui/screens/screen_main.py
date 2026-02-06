@@ -5,7 +5,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
 
-from qry.core.core_context import AppContext
+from qry.context import AppContext
 from qry.ui.widgets.widget_editor import SqlEditor
 from qry.ui.widgets.widget_results import ResultsTable
 from qry.ui.widgets.widget_sidebar import DatabaseSidebar

@@ -5,7 +5,7 @@ from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import Static, TextArea
 
-from qry.settings.settings_config import EditorSettings
+from qry.shared.settings import EditorSettings
 
 
 class SqlEditor(Static):
