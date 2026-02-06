@@ -6,6 +6,7 @@ import pytest
 
 from qry.domains.connection.models import ConnectionConfig, DatabaseType
 from qry.domains.database.factory import AdapterFactory
+from qry.domains.database.postgres import PostgresAdapter
 from qry.domains.database.sqlite import SQLiteAdapter
 
 
@@ -31,7 +32,7 @@ class TestAdapterFactory:
         with pytest.raises(ValueError, match="path"):
             AdapterFactory.create(config)
 
-    def test_create_postgres_raises_import_error(self):
+    def test_create_postgres_adapter(self):
         config = ConnectionConfig(
             name="test",
             db_type=DatabaseType.POSTGRES,
@@ -39,8 +40,9 @@ class TestAdapterFactory:
             database="test",
         )
 
-        with pytest.raises(ImportError, match="psycopg"):
-            AdapterFactory.create(config)
+        adapter = AdapterFactory.create(config)
+
+        assert isinstance(adapter, PostgresAdapter)
 
     def test_create_mysql_raises_import_error(self):
         config = ConnectionConfig(

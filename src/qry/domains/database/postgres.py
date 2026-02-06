@@ -88,32 +88,39 @@ class PostgresAdapter(DatabaseAdapter):
         if not self.is_connected():
             return []
 
-        cursor = self._conn.execute(  # type: ignore[union-attr]
-            "SELECT table_name FROM information_schema.tables "
-            "WHERE table_schema = 'public' ORDER BY table_name"
-        )
-        return [TableInfo(name=row[0], schema="public") for row in cursor.fetchall()]
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT table_name FROM information_schema.tables "
+                "WHERE table_schema = 'public' ORDER BY table_name"
+            )
+            return [TableInfo(name=row[0], schema="public") for row in cursor.fetchall()]
+        except psycopg.Error:
+            return []
 
     def get_columns(self, table_name: str) -> list[ColumnInfo]:
         if not self.is_connected():
             return []
 
-        cursor = self._conn.execute(  # type: ignore[union-attr]
-            "SELECT column_name, data_type, is_nullable, column_default "
-            "FROM information_schema.columns "
-            "WHERE table_schema = 'public' AND table_name = %s "
-            "ORDER BY ordinal_position",
-            (table_name,),
-        )
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT column_name, data_type, is_nullable, column_default "
+                "FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = %s "
+                "ORDER BY ordinal_position",
+                (table_name,),
+            )
 
-        pk_cursor = self._conn.execute(  # type: ignore[union-attr]
-            "SELECT a.attname "
-            "FROM pg_index i "
-            "JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) "
-            "WHERE i.indrelid = %s::regclass AND i.indisprimary",
-            (table_name,),
-        )
-        pk_columns = {row[0] for row in pk_cursor.fetchall()}
+            pk_cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT a.attname "
+                "FROM pg_index i "
+                "JOIN pg_attribute a ON a.attrelid = i.indrelid "
+                "AND a.attnum = ANY(i.indkey) "
+                "WHERE i.indrelid = %s::regclass AND i.indisprimary",
+                (table_name,),
+            )
+            pk_columns = {row[0] for row in pk_cursor.fetchall()}
+        except psycopg.Error:
+            return []
 
         columns = []
         for row in cursor.fetchall():
