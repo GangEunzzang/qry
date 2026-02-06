@@ -30,10 +30,21 @@ class AdapterFactory:
 
     @classmethod
     def _create_postgres(cls, config: ConnectionConfig) -> DatabaseAdapter:
-        db_type = DatabaseType.POSTGRES
-        raise ImportError(
-            f"PostgreSQL support requires '{db_type.required_module}'. "
-            f"Install with: {db_type.install_hint}"
+        try:
+            from qry.domains.database.postgres import PostgresAdapter
+        except ImportError as e:
+            db_type = DatabaseType.POSTGRES
+            raise ImportError(
+                f"PostgreSQL support requires '{db_type.required_module}'. "
+                f"Install with: {db_type.install_hint}"
+            ) from e
+
+        return PostgresAdapter(
+            host=config.host or "localhost",
+            port=config.port or 5432,
+            database=config.database or "",
+            user=config.user or "",
+            password=config.password or "",
         )
 
     @classmethod

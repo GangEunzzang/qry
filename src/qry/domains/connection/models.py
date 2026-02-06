@@ -47,6 +47,7 @@ class ConnectionConfig:
     port: int | None = None
     database: str | None = None
     user: str | None = None
+    password: str | None = None
     path: str | None = None  # SQLite specific
 
     def to_dict(self) -> dict[str, Any]:
