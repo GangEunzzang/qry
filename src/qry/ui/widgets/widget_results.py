@@ -75,6 +75,28 @@ class ResultsTable(Static):
 
         self.border_title = f"Results - {result.row_count} rows ({result.execution_time_ms:.1f}ms)"
 
+    def set_results(self, results: list[QueryResult]) -> None:
+        """Display multiple query results (shows last successful result with summary)."""
+        if not results:
+            return
+
+        display_result = results[-1]
+        for r in reversed(results):
+            if r.columns:
+                display_result = r
+                break
+
+        self.set_result(display_result)
+
+        total = len(results)
+        success = sum(1 for r in results if r.is_success)
+        if total > 1:
+            total_time = sum(r.execution_time_ms for r in results)
+            if display_result.error:
+                self.border_title = f"Results - {success}/{total} queries ({total_time:.1f}ms) - Error in query {success + 1}"
+            else:
+                self.border_title = f"Results - {total} queries ({total_time:.1f}ms)"
+
     def action_export(self) -> None:
         if self._result:
             self.post_message(self.ExportRequested(self._result))
