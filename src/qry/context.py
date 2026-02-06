@@ -6,7 +6,7 @@ from qry.domains.connection.models import ConnectionConfig
 from qry.domains.connection.service import ConnectionManager
 from qry.domains.database.base import DatabaseAdapter
 from qry.domains.database.factory import AdapterFactory
-from qry.domains.query.service import QueryService
+from qry.application.query_use_case import QueryUseCase
 from qry.shared.settings import Settings
 
 
@@ -17,7 +17,7 @@ class AppContext:
     settings: Settings
     connection_manager: ConnectionManager
     _adapter: DatabaseAdapter | None = field(default=None, init=False)
-    _query_service: QueryService | None = field(default=None, init=False)
+    _query_service: QueryUseCase | None = field(default=None, init=False)
     _current_connection: ConnectionConfig | None = field(default=None, init=False)
 
     @classmethod
@@ -37,7 +37,7 @@ class AppContext:
         try:
             self._adapter = adapter
             self._current_connection = config
-            self._query_service = QueryService(adapter=adapter)
+            self._query_service = QueryUseCase(adapter=adapter)
             self._query_service.history.set_connection(config.name)
         except Exception:
             adapter.disconnect()
@@ -66,7 +66,7 @@ class AppContext:
         return self._adapter
 
     @property
-    def query_service(self) -> QueryService | None:
+    def query_service(self) -> QueryUseCase | None:
         return self._query_service
 
     @property

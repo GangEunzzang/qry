@@ -1,4 +1,4 @@
-"""Query service - business logic layer for query operations."""
+"""Query use case - application layer orchestration."""
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from qry.domains.query.completion import CompletionProvider
 from qry.domains.query.history import HistoryManager
 from qry.domains.query.models import CompletionItem, HistoryEntry
-from qry.domains.query.ports import SchemaProvider
 from qry.shared.models import QueryResult
 from qry.shared.types import ColumnInfo, TableInfo
 
@@ -15,12 +14,8 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class QueryService:
-    """Service layer for query operations.
-
-    Takes a DatabaseAdapter which implements SchemaProvider,
-    maintaining the dependency direction from query -> ports.
-    """
+class QueryUseCase:
+    """Application service - orchestrates query execution, history, and completion."""
 
     adapter: "DatabaseAdapter"
     history: HistoryManager = field(default_factory=HistoryManager)
@@ -28,7 +23,6 @@ class QueryService:
     _current_query: str | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
-        # adapter implements SchemaProvider interface
         self._completion = CompletionProvider(self.adapter)
 
     def execute(self, sql: str) -> QueryResult:
