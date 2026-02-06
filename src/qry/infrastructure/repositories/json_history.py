@@ -30,7 +30,7 @@ class JsonHistoryRepository(HistoryRepository):
                 )
                 for entry in data.get("entries", [])
             ]
-        except (OSError, json.JSONDecodeError, KeyError):
+        except (OSError, json.JSONDecodeError, KeyError, ValueError):
             return []
 
     def save(self, entries: list[HistoryEntry]) -> None:

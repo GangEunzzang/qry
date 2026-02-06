@@ -51,11 +51,13 @@ class AppContext:
             if self._query_service:
                 self._query_service.save_history()
         finally:
-            if self._adapter:
-                self._adapter.disconnect()
-            self._adapter = None
-            self._query_service = None
-            self._current_connection = None
+            try:
+                if self._adapter:
+                    self._adapter.disconnect()
+            finally:
+                self._adapter = None
+                self._query_service = None
+                self._current_connection = None
 
     @property
     def is_connected(self) -> bool:

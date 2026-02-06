@@ -63,9 +63,9 @@ class QryApp(App):
         self.exit()
 
     def action_cancel(self) -> None:
-        if self._ctx.query_service:
+        if self._ctx.query_service and self._ctx.query_service.is_running:
             self._ctx.query_service.cancel()
-        self.exit()
+            self.notify("Query cancelled")
 
     def action_help(self) -> None:
         self.notify(
