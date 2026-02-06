@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
+from typing import ClassVar
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -58,7 +59,7 @@ class ExportScreen(ModalScreen[str | None]):
         ("escape", "cancel", "Cancel"),
     ]
 
-    _EXPORTERS: dict[str, type[Exporter]] = {
+    _EXPORTERS: ClassVar[dict[str, type[Exporter]]] = {
         "csv": CsvExporter,
         "json": JsonExporter,
     }
@@ -83,7 +84,8 @@ class ExportScreen(ModalScreen[str | None]):
                 yield Button("Export", variant="primary", id="btn-export")
 
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
-        fmt = "json" if event.index == 1 else "csv"
+        pressed = event.radio_set.pressed_button
+        fmt = "json" if pressed and pressed.id == "fmt-json" else "csv"
         self._format = fmt
 
         path_input = self.query_one("#file-path", Input)
@@ -107,10 +109,9 @@ class ExportScreen(ModalScreen[str | None]):
             return
 
         path = Path(path_str).expanduser()
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        exporter = self._EXPORTERS[self._format]()
         try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            exporter = self._EXPORTERS[self._format]()
             exporter.export(self._result, path)
             self.dismiss(str(path))
         except OSError as e:
