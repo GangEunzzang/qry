@@ -30,7 +30,11 @@ class SqlEditor(Static):
     BINDINGS = [
         Binding("ctrl+enter", "execute", "Run Query", priority=True),
         Binding("ctrl+space", "complete", "Complete"),
+        Binding("ctrl+h", "history", "History"),
     ]
+
+    class HistoryRequested(Message):
+        pass
 
     class ExecuteRequested(Message):
         def __init__(self, query: str) -> None:
@@ -67,6 +71,9 @@ class SqlEditor(Static):
 
     def action_complete(self) -> None:
         self.app.notify("Autocompletion not yet implemented")
+
+    def action_history(self) -> None:
+        self.post_message(self.HistoryRequested())
 
     def set_query(self, query: str) -> None:
         if self._text_area:

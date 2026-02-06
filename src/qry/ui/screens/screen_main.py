@@ -7,6 +7,7 @@ from textual.widget import Widget
 
 from qry.context import AppContext
 from qry.ui.screens.screen_export import ExportScreen
+from qry.ui.screens.screen_history import HistoryScreen
 from qry.ui.widgets.widget_editor import SqlEditor
 from qry.ui.widgets.widget_results import ResultsTable
 from qry.ui.widgets.widget_sidebar import DatabaseSidebar
@@ -37,6 +38,7 @@ class MainScreen(Widget):
 
     BINDINGS = [
         Binding("ctrl+b", "toggle_sidebar", "Toggle Sidebar"),
+        Binding("ctrl+h", "show_history", "History"),
         Binding("f1", "help", "Help"),
     ]
 
@@ -104,6 +106,32 @@ class MainScreen(Widget):
                 statusbar.set_message(f"Exported to {result}")
 
         self.app.push_screen(ExportScreen(message.result), callback=_on_export_dismiss)
+
+    def on_sql_editor_history_requested(
+        self, message: SqlEditor.HistoryRequested
+    ) -> None:
+        self._show_history()
+
+    def action_show_history(self) -> None:
+        self._show_history()
+
+    def _show_history(self) -> None:
+        if not self._ctx.query_service:
+            self.app.notify("No database connection", severity="error")
+            return
+
+        entries = self._ctx.query_service.get_history(count=100)
+        if not entries:
+            self.app.notify("No history entries")
+            return
+
+        def _on_history_dismiss(query: str | None) -> None:
+            if query:
+                editor = self.query_one("#editor", SqlEditor)
+                editor.set_query(query)
+                editor.action_execute()
+
+        self.app.push_screen(HistoryScreen(entries), callback=_on_history_dismiss)
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar", DatabaseSidebar)
