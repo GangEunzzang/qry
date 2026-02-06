@@ -6,6 +6,7 @@ import pytest
 
 from qry.domains.connection.models import ConnectionConfig, DatabaseType
 from qry.domains.database.factory import AdapterFactory
+from qry.domains.database.mysql import MySQLAdapter
 from qry.domains.database.postgres import PostgresAdapter
 from qry.domains.database.sqlite import SQLiteAdapter
 
@@ -44,7 +45,7 @@ class TestAdapterFactory:
 
         assert isinstance(adapter, PostgresAdapter)
 
-    def test_create_mysql_raises_import_error(self):
+    def test_create_mysql_adapter(self):
         config = ConnectionConfig(
             name="test",
             db_type=DatabaseType.MYSQL,
@@ -52,8 +53,9 @@ class TestAdapterFactory:
             database="test",
         )
 
-        with pytest.raises(ImportError, match="pymysql"):
-            AdapterFactory.create(config)
+        adapter = AdapterFactory.create(config)
+
+        assert isinstance(adapter, MySQLAdapter)
 
     def test_supported_types(self):
         types = AdapterFactory.supported_types()

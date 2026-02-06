@@ -49,10 +49,21 @@ class AdapterFactory:
 
     @classmethod
     def _create_mysql(cls, config: ConnectionConfig) -> DatabaseAdapter:
-        db_type = DatabaseType.MYSQL
-        raise ImportError(
-            f"MySQL support requires '{db_type.required_module}'. "
-            f"Install with: {db_type.install_hint}"
+        try:
+            from qry.domains.database.mysql import MySQLAdapter
+        except ImportError as e:
+            db_type = DatabaseType.MYSQL
+            raise ImportError(
+                f"MySQL support requires '{db_type.required_module}'. "
+                f"Install with: {db_type.install_hint}"
+            ) from e
+
+        return MySQLAdapter(
+            host=config.host or "localhost",
+            port=config.port or 3306,
+            database=config.database or "",
+            user=config.user or "",
+            password=config.password or "",
         )
 
     @classmethod
