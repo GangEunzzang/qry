@@ -4,23 +4,8 @@ from qry.domains.connection.models import ConnectionConfig, DatabaseType
 from qry.domains.database.base import DatabaseAdapter
 
 
-def _try_import(module: str) -> bool:
-    """Check if a module can be imported."""
-    try:
-        __import__(module)
-        return True
-    except ImportError:
-        return False
-
-
 class AdapterFactory:
     """Factory for creating database adapters."""
-
-    # Module requirements for each database type
-    _REQUIRED_MODULES = {
-        DatabaseType.POSTGRES: "psycopg",
-        DatabaseType.MYSQL: "pymysql",
-    }
 
     @classmethod
     def create(cls, config: ConnectionConfig) -> DatabaseAdapter:
@@ -45,14 +30,18 @@ class AdapterFactory:
 
     @classmethod
     def _create_postgres(cls, config: ConnectionConfig) -> DatabaseAdapter:
+        db_type = DatabaseType.POSTGRES
         raise ImportError(
-            "PostgreSQL support requires 'psycopg'. Install with: pip install 'qry[postgres]'"
+            f"PostgreSQL support requires '{db_type.required_module}'. "
+            f"Install with: {db_type.install_hint}"
         )
 
     @classmethod
     def _create_mysql(cls, config: ConnectionConfig) -> DatabaseAdapter:
+        db_type = DatabaseType.MYSQL
         raise ImportError(
-            "MySQL support requires 'pymysql'. Install with: pip install 'qry[mysql]'"
+            f"MySQL support requires '{db_type.required_module}'. "
+            f"Install with: {db_type.install_hint}"
         )
 
     @classmethod
@@ -63,7 +52,4 @@ class AdapterFactory:
     @classmethod
     def is_available(cls, db_type: DatabaseType) -> bool:
         """Check if a database type is available (dependencies installed)."""
-        if db_type == DatabaseType.SQLITE:
-            return True  # Built-in, always available
-        module = cls._REQUIRED_MODULES.get(db_type)
-        return _try_import(module) if module else False
+        return db_type.is_available()

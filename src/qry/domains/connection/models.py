@@ -6,9 +6,37 @@ from typing import Any
 
 
 class DatabaseType(str, Enum):
+    """Supported database types with their metadata."""
+
     SQLITE = "sqlite"
     POSTGRES = "postgres"
     MYSQL = "mysql"
+
+    @property
+    def required_module(self) -> str | None:
+        """Module that must be installed to use this database type."""
+        return {
+            DatabaseType.POSTGRES: "psycopg",
+            DatabaseType.MYSQL: "pymysql",
+        }.get(self)
+
+    @property
+    def install_hint(self) -> str | None:
+        """Pip install command for this database type."""
+        return {
+            DatabaseType.POSTGRES: "pip install 'qry[postgres]'",
+            DatabaseType.MYSQL: "pip install 'qry[mysql]'",
+        }.get(self)
+
+    def is_available(self) -> bool:
+        """Check if required dependencies are installed."""
+        if self.required_module is None:
+            return True
+        try:
+            __import__(self.required_module)
+            return True
+        except ImportError:
+            return False
 
 
 @dataclass
