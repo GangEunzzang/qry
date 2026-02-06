@@ -55,6 +55,12 @@ class MainScreen(Widget):
     def on_mount(self) -> None:
         self._update_sidebar()
         self._update_statusbar()
+        self._setup_completion()
+
+    def _setup_completion(self) -> None:
+        editor = self.query_one("#editor", SqlEditor)
+        if self._ctx.query_service:
+            editor.set_completion_callback(self._ctx.query_service.get_completions)
 
     def _update_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar", DatabaseSidebar)
@@ -115,3 +121,4 @@ class MainScreen(Widget):
     def refresh_connection(self) -> None:
         self._update_sidebar()
         self._update_statusbar()
+        self._setup_completion()

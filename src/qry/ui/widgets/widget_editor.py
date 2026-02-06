@@ -1,11 +1,15 @@
 """SQL Editor widget."""
 
+from collections.abc import Callable
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import Static, TextArea
 
+from qry.domains.query.models import CompletionItem
 from qry.shared.settings import EditorSettings
+from qry.ui.widgets.widget_completion import CompletionDropdown
 
 
 class SqlEditor(Static):
@@ -45,6 +49,7 @@ class SqlEditor(Static):
         super().__init__(id=id)
         self._settings = settings or EditorSettings()
         self._text_area: TextArea | None = None
+        self._completion_callback: Callable[[str, int], list[CompletionItem]] | None = None
 
     def compose(self) -> ComposeResult:
         yield TextArea(
@@ -54,10 +59,27 @@ class SqlEditor(Static):
             tab_behavior="indent",
             id="sql-input",
         )
+        yield CompletionDropdown(id="completion-dropdown")
 
     def on_mount(self) -> None:
         self._text_area = self.query_one("#sql-input", TextArea)
         self.border_title = "Query"
+
+    def set_completion_callback(
+        self, callback: Callable[[str, int], list[CompletionItem]]
+    ) -> None:
+        self._completion_callback = callback
+
+    def _get_cursor_offset(self) -> int:
+        """Convert TextArea cursor (row, col) to flat character offset."""
+        if not self._text_area:
+            return 0
+        row, col = self._text_area.cursor_location
+        text = self._text_area.text
+        lines = text.split("\n")
+        offset = sum(len(lines[i]) + 1 for i in range(row))
+        offset += col
+        return offset
 
     def action_execute(self) -> None:
         if self._text_area:
@@ -66,7 +88,49 @@ class SqlEditor(Static):
                 self.post_message(self.ExecuteRequested(query))
 
     def action_complete(self) -> None:
-        self.app.notify("Autocompletion not yet implemented")
+        if not self._text_area or not self._completion_callback:
+            return
+        text = self._text_area.text
+        cursor_pos = self._get_cursor_offset()
+        items = self._completion_callback(text, cursor_pos)
+        dropdown = self.query_one("#completion-dropdown", CompletionDropdown)
+        dropdown.show_completions(items)
+
+    def _get_word_prefix_length(self) -> int:
+        """Get length of the word prefix before cursor."""
+        if not self._text_area:
+            return 0
+        text = self._text_area.text
+        pos = self._get_cursor_offset()
+        start = pos
+        while start > 0 and (text[start - 1].isalnum() or text[start - 1] == "_"):
+            start -= 1
+        return pos - start
+
+    def on_completion_dropdown_item_selected(
+        self, event: CompletionDropdown.ItemSelected
+    ) -> None:
+        if self._text_area:
+            prefix_len = self._get_word_prefix_length()
+            row, col = self._text_area.cursor_location
+            start_col = col - prefix_len
+
+            from textual.widgets.text_area import Selection
+
+            start = (row, start_col)
+            end = (row, col)
+            self._text_area.selection = Selection(start, end)
+            self._text_area.replace(event.item.text, start, end)
+
+            new_col = start_col + len(event.item.text)
+            self._text_area.cursor_location = (row, new_col)
+            self._text_area.focus()
+
+    def on_completion_dropdown_dismissed(
+        self, event: CompletionDropdown.Dismissed
+    ) -> None:
+        if self._text_area:
+            self._text_area.focus()
 
     def set_query(self, query: str) -> None:
         if self._text_area:
