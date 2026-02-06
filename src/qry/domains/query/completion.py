@@ -1,20 +1,20 @@
 """SQL autocompletion provider."""
 
 from qry.domains.query.models import CompletionItem
+from qry.domains.query.ports import SchemaProvider
+from qry.shared.constants import SQL_TABLE_CONTEXT_KEYWORDS
 from qry.shared.types import ColumnInfo, TableInfo
-
-# Use TYPE_CHECKING to avoid circular imports
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from qry.domains.database.base import DatabaseAdapter
 
 
 class CompletionProvider:
-    """Provides SQL autocompletion suggestions."""
+    """Provides SQL autocompletion suggestions.
 
-    def __init__(self, adapter: "DatabaseAdapter") -> None:
-        self._adapter = adapter
+    Uses SchemaProvider port to access database schema, keeping
+    this domain independent of the database domain.
+    """
+
+    def __init__(self, schema_provider: SchemaProvider) -> None:
+        self._schema = schema_provider
         self._tables_cache: list[TableInfo] | None = None
         self._columns_cache: dict[str, list[ColumnInfo]] = {}
 
@@ -66,7 +66,7 @@ class CompletionProvider:
     def _find_table_context(self, text: str, position: int) -> str | None:
         text_before = text[:position].upper()
 
-        for keyword in ["FROM ", "JOIN "]:
+        for keyword in SQL_TABLE_CONTEXT_KEYWORDS:
             idx = text_before.rfind(keyword)
             if idx != -1:
                 after_keyword = text[idx + len(keyword) : position].strip()
@@ -78,12 +78,12 @@ class CompletionProvider:
 
     def _get_tables(self) -> list[TableInfo]:
         if self._tables_cache is None:
-            self._tables_cache = self._adapter.get_tables()
+            self._tables_cache = self._schema.get_tables()
         return self._tables_cache
 
     def _get_columns(self, table_name: str) -> list[ColumnInfo]:
         if table_name not in self._columns_cache:
-            self._columns_cache[table_name] = self._adapter.get_columns(table_name)
+            self._columns_cache[table_name] = self._schema.get_columns(table_name)
         return self._columns_cache[table_name]
 
     def invalidate_cache(self) -> None:

@@ -3,14 +3,19 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+from qry.domains.query.ports import SchemaProvider
 from qry.shared.types import ColumnInfo, TableInfo
 
 if TYPE_CHECKING:
-    from qry.domains.query.models import QueryResult
+    from qry.shared.models import QueryResult
 
 
-class DatabaseAdapter(ABC):
-    """Abstract base class for database adapters."""
+class DatabaseAdapter(SchemaProvider, ABC):
+    """Abstract base class for database adapters.
+
+    Implements SchemaProvider to allow query domain to access schema
+    without direct dependency on database domain.
+    """
 
     @abstractmethod
     def connect(self) -> None:

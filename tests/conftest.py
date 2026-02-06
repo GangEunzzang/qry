@@ -19,9 +19,13 @@ def tmp_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr("qry.shared.paths.get_data_dir", lambda: data_dir)
     monkeypatch.setattr("qry.shared.paths.get_cache_dir", lambda: tmp_path / "cache")
 
-    # Patch in modules that import these functions directly
-    monkeypatch.setattr("qry.domains.connection.service.get_config_dir", lambda: config_dir)
-    monkeypatch.setattr("qry.domains.query.history.get_data_dir", lambda: data_dir)
+    # Patch in infrastructure repositories that import paths
+    monkeypatch.setattr(
+        "qry.infrastructure.repositories.yaml_connection.get_config_dir", lambda: config_dir
+    )
+    monkeypatch.setattr(
+        "qry.infrastructure.repositories.json_history.get_data_dir", lambda: data_dir
+    )
 
     return config_dir
 

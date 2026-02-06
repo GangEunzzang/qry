@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 from qry.domains.database.base import DatabaseAdapter
-from qry.domains.query.models import QueryResult
+from qry.shared.models import QueryResult
 from qry.shared.exceptions import DatabaseError
 from qry.shared.types import ColumnInfo, TableInfo
 

@@ -5,7 +5,7 @@ import io
 from pathlib import Path
 
 from qry.domains.export.base import Exporter
-from qry.domains.query.models import QueryResult
+from qry.shared.models import QueryResult
 
 
 class CsvExporter(Exporter):

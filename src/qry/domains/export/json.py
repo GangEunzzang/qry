@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from qry.domains.export.base import Exporter
-from qry.domains.query.models import QueryResult
+from qry.shared.models import QueryResult
 
 
 class JsonExporter(Exporter):

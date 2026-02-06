@@ -1,62 +1,34 @@
 """Query history management."""
 
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 
 from qry.domains.query.models import HistoryEntry
-from qry.shared.paths import get_data_dir
+from qry.domains.query.repository import HistoryRepository
+from qry.infrastructure.repositories.json_history import JsonHistoryRepository
 
 
 @dataclass
 class HistoryManager:
+    """Manages query history with persistence.
+
+    Uses repository pattern for storage, allowing different
+    backends (JSON, database, etc.)
+    """
+
     max_entries: int = 1000
+    _repository: HistoryRepository = field(default_factory=JsonHistoryRepository)
     _entries: list[HistoryEntry] = field(default_factory=list)
     _connection_name: str | None = None
 
     def __post_init__(self) -> None:
         self._load()
 
-    def _get_history_path(self) -> Path:
-        return get_data_dir() / "history.json"
-
     def _load(self) -> None:
-        path = self._get_history_path()
-        if not path.exists():
-            return
-
-        try:
-            with open(path) as f:
-                data = json.load(f)
-            self._entries = [
-                HistoryEntry(
-                    query=entry["query"],
-                    timestamp=datetime.fromisoformat(entry["timestamp"]),
-                    connection_name=entry.get("connection_name"),
-                )
-                for entry in data.get("entries", [])
-            ]
-        except (json.JSONDecodeError, KeyError):
-            self._entries = []
+        self._entries = self._repository.load()
 
     def save(self) -> None:
-        path = self._get_history_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        data = {
-            "entries": [
-                {
-                    "query": entry.query,
-                    "timestamp": entry.timestamp.isoformat(),
-                    "connection_name": entry.connection_name,
-                }
-                for entry in self._entries
-            ]
-        }
-
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2)
+        self._repository.save(self._entries)
 
     def add(self, query: str) -> None:
         entry = HistoryEntry(

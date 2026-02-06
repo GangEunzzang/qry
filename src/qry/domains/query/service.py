@@ -1,13 +1,14 @@
 """Query service - business logic layer for query operations."""
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from qry.domains.query.completion import CompletionProvider
 from qry.domains.query.history import HistoryManager
-from qry.domains.query.models import CompletionItem, HistoryEntry, QueryResult
-
-# Use TYPE_CHECKING to avoid circular imports
-from typing import TYPE_CHECKING
+from qry.domains.query.models import CompletionItem, HistoryEntry
+from qry.domains.query.ports import SchemaProvider
+from qry.shared.models import QueryResult
+from qry.shared.types import ColumnInfo, TableInfo
 
 if TYPE_CHECKING:
     from qry.domains.database.base import DatabaseAdapter
@@ -15,7 +16,11 @@ if TYPE_CHECKING:
 
 @dataclass
 class QueryService:
-    """Service layer for query operations."""
+    """Service layer for query operations.
+
+    Takes a DatabaseAdapter which implements SchemaProvider,
+    maintaining the dependency direction from query -> ports.
+    """
 
     adapter: "DatabaseAdapter"
     history: HistoryManager = field(default_factory=HistoryManager)
@@ -23,6 +28,7 @@ class QueryService:
     _current_query: str | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
+        # adapter implements SchemaProvider interface
         self._completion = CompletionProvider(self.adapter)
 
     def execute(self, sql: str) -> QueryResult:
@@ -64,8 +70,8 @@ class QueryService:
         if self._completion:
             self._completion.invalidate_cache()
 
-    def get_tables(self):
+    def get_tables(self) -> list[TableInfo]:
         return self.adapter.get_tables()
 
-    def get_columns(self, table_name: str):
+    def get_columns(self, table_name: str) -> list[ColumnInfo]:
         return self.adapter.get_columns(table_name)

@@ -1,49 +1,28 @@
 """Connection manager service."""
 
-from pathlib import Path
-
-import yaml
-
 from qry.domains.connection.models import ConnectionConfig
-from qry.shared.paths import get_config_dir
+from qry.domains.connection.repository import ConnectionRepository
+from qry.infrastructure.repositories.yaml_connection import YamlConnectionRepository
 
 
 class ConnectionManager:
-    """Manages database connection configurations."""
+    """Manages database connection configurations.
 
-    def __init__(self) -> None:
+    Uses repository pattern for persistence, allowing different
+    storage backends (YAML, database, etc.)
+    """
+
+    def __init__(self, repository: ConnectionRepository | None = None) -> None:
+        self._repository = repository or YamlConnectionRepository()
         self._connections: dict[str, ConnectionConfig] = {}
         self._load()
 
-    def _get_connections_path(self) -> Path:
-        return get_config_dir() / "connections.yaml"
-
     def _load(self) -> None:
-        path = self._get_connections_path()
-        if not path.exists():
-            return
-
-        try:
-            with open(path, encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
-        except (OSError, yaml.YAMLError):
-            data = {}
-
-        for conn_data in data.get("connections", []):
-            try:
-                conn = ConnectionConfig.from_dict(conn_data)
-                self._connections[conn.name] = conn
-            except (KeyError, ValueError):
-                continue
+        for conn in self._repository.load_all():
+            self._connections[conn.name] = conn
 
     def save(self) -> None:
-        path = self._get_connections_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        data = {"connections": [conn.to_dict() for conn in self._connections.values()]}
-
-        with open(path, "w") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+        self._repository.save_all(list(self._connections.values()))
 
     def add(self, config: ConnectionConfig) -> None:
         self._connections[config.name] = config
