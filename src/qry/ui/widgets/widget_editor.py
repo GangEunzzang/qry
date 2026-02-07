@@ -6,6 +6,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import Static, TextArea
+from textual.widgets.text_area import Selection
 
 from qry.domains.query.models import CompletionItem
 from qry.shared.settings import EditorSettings
@@ -66,7 +67,7 @@ class SqlEditor(Static):
         self.border_title = "Query"
 
     def set_completion_callback(
-        self, callback: Callable[[str, int], list[CompletionItem]]
+        self, callback: Callable[[str, int], list[CompletionItem]] | None
     ) -> None:
         self._completion_callback = callback
 
@@ -74,10 +75,10 @@ class SqlEditor(Static):
         """Convert TextArea cursor (row, col) to flat character offset."""
         if not self._text_area:
             return 0
-        row, col = self._text_area.cursor_location
         text = self._text_area.text
+        row, col = self._text_area.cursor_location
         lines = text.split("\n")
-        offset = sum(len(lines[i]) + 1 for i in range(row))
+        offset = sum(len(lines[i]) + 1 for i in range(min(row, len(lines))))
         offset += col
         return offset
 
@@ -100,12 +101,16 @@ class SqlEditor(Static):
         """Get length of the word prefix before cursor."""
         if not self._text_area:
             return 0
+        row, col = self._text_area.cursor_location
         text = self._text_area.text
-        pos = self._get_cursor_offset()
-        start = pos
-        while start > 0 and (text[start - 1].isalnum() or text[start - 1] == "_"):
-            start -= 1
-        return pos - start
+        lines = text.split("\n")
+        if row < len(lines):
+            line = lines[row]
+            start = col
+            while start > 0 and (line[start - 1].isalnum() or line[start - 1] == "_"):
+                start -= 1
+            return col - start
+        return 0
 
     def on_completion_dropdown_item_selected(
         self, event: CompletionDropdown.ItemSelected
@@ -114,8 +119,6 @@ class SqlEditor(Static):
             prefix_len = self._get_word_prefix_length()
             row, col = self._text_area.cursor_location
             start_col = col - prefix_len
-
-            from textual.widgets.text_area import Selection
 
             start = (row, start_col)
             end = (row, col)

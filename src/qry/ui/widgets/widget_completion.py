@@ -1,5 +1,7 @@
 """Autocompletion dropdown widget."""
 
+from typing import ClassVar
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
@@ -39,6 +41,12 @@ class CompletionDropdown(Widget):
         Binding("enter", "select", "Select", priority=True),
     ]
 
+    KIND_ICONS: ClassVar[dict[str, str]] = {
+        "table": "[T]",
+        "column": "[C]",
+        "keyword": "[K]",
+    }
+
     class ItemSelected(Message):
         def __init__(self, item: CompletionItem) -> None:
             super().__init__()
@@ -67,9 +75,7 @@ class CompletionDropdown(Widget):
         if self._option_list:
             self._option_list.clear_options()
             for item in items:
-                kind_icon = {"table": "[T]", "column": "[C]", "keyword": "[K]"}.get(
-                    item.kind, "[ ]"
-                )
+                kind_icon = self.KIND_ICONS.get(item.kind, "[ ]")
                 label = f"{kind_icon} {item.text}"
                 if item.detail:
                     label += f"  ({item.detail})"
