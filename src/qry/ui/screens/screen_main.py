@@ -8,6 +8,7 @@ from textual.widget import Widget
 from qry.context import AppContext
 from qry.ui.screens.screen_export import ExportScreen
 from qry.ui.screens.screen_history import HistoryScreen
+from qry.ui.screens.screen_snippet import SnippetScreen
 from qry.ui.widgets.widget_editor import SqlEditor
 from qry.ui.widgets.widget_results import ResultsTable
 from qry.ui.widgets.widget_sidebar import DatabaseSidebar
@@ -38,6 +39,7 @@ class MainScreen(Widget):
 
     BINDINGS = [
         Binding("ctrl+b", "toggle_sidebar", "Toggle Sidebar"),
+        Binding("ctrl+p", "show_snippets", "Snippets"),
         Binding("ctrl+t", "test_connection", "Test Connection"),
         Binding("f1", "help", "Help"),
     ]
@@ -155,6 +157,19 @@ class MainScreen(Widget):
             self.app.notify(message, title="Connection Test", severity=severity)
         else:
             self.app.notify("No active connection", severity="warning")
+
+    def action_show_snippets(self) -> None:
+        snippets = self._ctx.snippet_repository.list_all()
+        if not snippets:
+            self.app.notify("No snippets saved")
+            return
+
+        def _on_snippet_dismiss(query: str | None) -> None:
+            if query:
+                editor = self.query_one("#editor", SqlEditor)
+                editor.set_query(query)
+
+        self.app.push_screen(SnippetScreen(snippets), callback=_on_snippet_dismiss)
 
     def action_help(self) -> None:
         self.app.notify("Press Ctrl+Enter to run query, Ctrl+B for sidebar")
