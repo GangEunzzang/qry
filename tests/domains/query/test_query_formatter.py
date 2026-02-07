@@ -1,6 +1,6 @@
 """Tests for SQL formatter."""
 
-from qry.domains.query.formatter import format_sql
+from qry.domains.query.query_formatter import format_sql
 
 
 class TestFormatSql:

@@ -92,6 +92,7 @@ def _tokenize(sql: str) -> list[tuple[str, str]]:
             i += 2
             while i + 1 < n and not (sql[i] == "*" and sql[i + 1] == "/"):
                 i += 1
+            i = min(i, n)
             i += 2  # skip */
             tokens.append(("comment", sql[start:i]))
             continue
@@ -115,10 +116,14 @@ def _tokenize(sql: str) -> list[tuple[str, str]]:
         if ch == '"':
             start = i
             i += 1
-            while i < n and sql[i] != '"':
-                i += 1
-            if i < n:
-                i += 1
+            while i < n:
+                if sql[i] == '"' and i + 1 < n and sql[i + 1] == '"':
+                    i += 2  # escaped quote
+                elif sql[i] == '"':
+                    i += 1
+                    break
+                else:
+                    i += 1
             tokens.append(("string", sql[start:i]))
             continue
 
@@ -179,7 +184,6 @@ def _merge_multi_word_keywords(
         merged = False
         for length in (3, 2):
             words: list[str] = []
-            positions: list[int] = []
             j = i
             while j < len(tokens) and len(words) < length:
                 if tokens[j][0] == "whitespace":
@@ -187,7 +191,6 @@ def _merge_multi_word_keywords(
                     continue
                 if tokens[j][0] == "word":
                     words.append(tokens[j][1].upper())
-                    positions.append(j)
                     j += 1
                 else:
                     break

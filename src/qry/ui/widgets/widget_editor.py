@@ -8,7 +8,7 @@ from textual.message import Message
 from textual.widgets import Static, TextArea
 from textual.widgets.text_area import Selection
 
-from qry.domains.query.formatter import format_sql
+from qry.domains.query.query_formatter import format_sql
 from qry.domains.query.models import CompletionItem
 from qry.shared.settings import EditorSettings
 from qry.ui.widgets.widget_completion import CompletionDropdown
