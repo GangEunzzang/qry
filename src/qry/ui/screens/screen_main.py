@@ -38,7 +38,6 @@ class MainScreen(Widget):
 
     BINDINGS = [
         Binding("ctrl+b", "toggle_sidebar", "Toggle Sidebar"),
-        Binding("ctrl+h", "show_history", "History"),
         Binding("f1", "help", "Help"),
     ]
 
@@ -112,9 +111,6 @@ class MainScreen(Widget):
     ) -> None:
         self._show_history()
 
-    def action_show_history(self) -> None:
-        self._show_history()
-
     def _show_history(self) -> None:
         if not self._ctx.query_service:
             self.app.notify("No database connection", severity="error")
@@ -129,7 +125,6 @@ class MainScreen(Widget):
             if query:
                 editor = self.query_one("#editor", SqlEditor)
                 editor.set_query(query)
-                editor.action_execute()
 
         self.app.push_screen(HistoryScreen(entries), callback=_on_history_dismiss)
 

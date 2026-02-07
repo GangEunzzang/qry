@@ -82,6 +82,8 @@ class HistoryScreen(ModalScreen[str | None]):
             option_list.add_option(Option(label))
         if self._filtered:
             option_list.highlighted = 0
+        else:
+            option_list.add_option(Option("No matching queries", disabled=True))
 
     def on_input_changed(self, event: Input.Changed) -> None:
         pattern = event.value.strip()
@@ -93,6 +95,12 @@ class HistoryScreen(ModalScreen[str | None]):
         else:
             self._filtered = list(self._entries)
         self._refresh_list()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        option_list = self.query_one("#history-list", OptionList)
+        highlighted = option_list.highlighted
+        if highlighted is not None and 0 <= highlighted < len(self._filtered):
+            self.dismiss(self._filtered[highlighted].query)
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         idx = event.option_index
