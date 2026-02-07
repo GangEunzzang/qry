@@ -61,3 +61,12 @@ Thumbs.db
 
 # uv
 uv.lock
+
+# Claude Code
+.claude/
+
+# Docs (local only)
+docs/
+
+# Database files
+*.db

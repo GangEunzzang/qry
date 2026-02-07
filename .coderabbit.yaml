@@ -1,0 +1,144 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en"
+early_access: true
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+
+  path_filters:
+    - "!**/__pycache__/**"
+    - "!**/*.pyc"
+    - "!.claude/**"
+    - "!uv.lock"
+    - "!*.db"
+
+  path_instructions:
+    - path: "src/qry/**/*.py"
+      instructions: |
+        Python 3.12+ codebase. Follow these rules:
+        - Type hints required (PEP 604 union syntax `X | Y`)
+        - No `__init__.py` files
+        - File naming: `{domain}_{name}.py` (e.g., `query_service.py`, `database_sqlite.py`)
+        - Lint/format with ruff (line-length 100)
+        - No excessive docstrings, concise comments only
+        - Import order: stdlib → third-party → local (isort rules)
+
+    - path: "src/qry/domains/database/**"
+      instructions: |
+        DatabaseAdapter implementations.
+        - Must implement the ABC defined in base.py
+        - All DB errors must be wrapped in `DatabaseError` with `from e` chaining
+        - Measure execution time with `time.perf_counter()`
+        - Return `QueryResult` (from qry.shared.models)
+        - Use lazy import pattern in factory.py
+
+    - path: "src/qry/ui/**"
+      instructions: |
+        Textual TUI widgets/screens.
+        - Use Textual Message pattern for inter-widget communication
+        - ModalScreen must use generic return types (e.g., `ModalScreen[str | None]`)
+        - Define CSS via `DEFAULT_CSS` class variable (inline)
+        - BINDINGS follow Textual convention (not `ClassVar`)
+
+    - path: "tests/**"
+      instructions: |
+        pytest test files.
+        - Fixtures defined in conftest.py
+        - Use `unittest.mock.patch` for mocking
+        - External DB dependent tests must be mock-based
+        - Test file naming: `test_{domain}_{name}.py`
+
+  auto_review:
+    enabled: true
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "wip"
+      - "draft"
+    drafts: false
+    base_branches:
+      - "main"
+
+  tools:
+    # Python linting (project uses ruff)
+    ruff:
+      enabled: true
+    # Python static analysis
+    pylint:
+      enabled: false  # ruff is sufficient
+    flake8:
+      enabled: false  # replaced by ruff
+
+    # SQL linting
+    sqlfluff:
+      enabled: true
+
+    # YAML validation (connections.yaml, etc.)
+    yamllint:
+      enabled: true
+
+    # Markdown linting (docs/PRD.md, etc.)
+    markdownlint:
+      enabled: true
+
+    # Secret scanning (password, API key leak prevention)
+    gitleaks:
+      enabled: true
+
+    # Shell script validation
+    shellcheck:
+      enabled: true
+
+    # GitHub Actions validation
+    actionlint:
+      enabled: true
+
+    # Grammar & style checking
+    languagetool:
+      enabled: true
+      enabled_rules:
+        - "EN_QUOTES"
+      enabled_categories:
+        - "TYPOS"
+      level: "default"
+
+    # Code pattern analysis
+    ast-grep:
+      enabled: true
+
+    # Security scanning
+    semgrep:
+      enabled: true
+
+    # Disabled tools (not used in this project)
+    biome:
+      enabled: false
+    eslint:
+      enabled: false
+    hadolint:
+      enabled: false
+    phpstan:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    clippy:
+      enabled: false
+    detekt:
+      enabled: false
+    swiftlint:
+      enabled: false
+    tflint:
+      enabled: false
+    checkov:
+      enabled: false
+    rubocop:
+      enabled: false
+
+chat:
+  auto_reply: true
