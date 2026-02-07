@@ -101,6 +101,45 @@ class TestQueryUseCase:
 
         assert use_case.get_history() == []
 
+    def test_execute_multi_all_succeed(self, use_case: QueryUseCase):
+        results = use_case.execute_multi("SELECT 1; SELECT 2; SELECT 3")
+
+        assert len(results) == 3
+        assert all(r.is_success for r in results)
+
+    def test_execute_multi_middle_fails_stops_early(self, use_case: QueryUseCase):
+        results = use_case.execute_multi(
+            "SELECT 1; SELECT * FROM nonexistent; SELECT 3"
+        )
+
+        assert len(results) == 2
+        assert results[0].is_success
+        assert not results[1].is_success
+
+    def test_execute_multi_empty_input(self, use_case: QueryUseCase):
+        results = use_case.execute_multi("")
+
+        assert len(results) == 1
+        assert not results[0].is_success
+        assert results[0].error is not None
+
+    def test_execute_multi_single_delegates_to_execute(self, use_case: QueryUseCase):
+        results = use_case.execute_multi("SELECT * FROM users")
+
+        assert len(results) == 1
+        assert results[0].is_success
+        assert results[0].row_count == 2
+
+    def test_execute_multi_only_success_added_to_history(self, use_case: QueryUseCase):
+        use_case.execute_multi("SELECT 1; SELECT * FROM nonexistent; SELECT 3")
+
+        history = use_case.get_history()
+        queries = [h.query for h in history]
+
+        assert "SELECT 1" in queries
+        assert "SELECT * FROM nonexistent" not in queries
+        assert "SELECT 3" not in queries
+
     def test_invalidate_schema_cache(self, use_case: QueryUseCase):
         # First access caches
         use_case.get_completions("u", 1)

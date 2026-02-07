@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from qry.domains.query.completion import CompletionProvider
 from qry.domains.query.history import HistoryManager
 from qry.domains.query.models import CompletionItem, HistoryEntry
+from qry.domains.query.splitter import QuerySplitter
 from qry.shared.models import QueryResult
 from qry.shared.types import ColumnInfo, TableInfo
 
@@ -34,6 +35,23 @@ class QueryUseCase:
             return result
         finally:
             self._current_query = None
+
+    def execute_multi(self, sql: str) -> list[QueryResult]:
+        """Execute multiple semicolon-separated statements."""
+        statements = QuerySplitter.split(sql)
+        if not statements:
+            return [QueryResult(error="No statements to execute")]
+
+        if len(statements) == 1:
+            return [self.execute(statements[0])]
+
+        results: list[QueryResult] = []
+        for stmt in statements:
+            result = self.execute(stmt)
+            results.append(result)
+            if not result.is_success:
+                break
+        return results
 
     def cancel(self) -> None:
         self.adapter.cancel()

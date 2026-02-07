@@ -78,13 +78,20 @@ class MainScreen(Widget):
             self.app.notify("No database connection", severity="error")
             return
 
-        result = self._ctx.query_service.execute(message.query)
+        results = self._ctx.query_service.execute_multi(message.query)
         results_table = self.query_one("#results", ResultsTable)
-        results_table.set_result(result)
 
-        if result.error:
-            editor = self.query_one("#editor", SqlEditor)
-            editor.show_error(result.error, result.error_position)
+        if len(results) == 1:
+            results_table.set_result(results[0])
+            if results[0].error:
+                editor = self.query_one("#editor", SqlEditor)
+                editor.show_error(results[0].error, results[0].error_position)
+        else:
+            results_table.set_results(results)
+            last = results[-1]
+            if last.error:
+                editor = self.query_one("#editor", SqlEditor)
+                editor.show_error(last.error, last.error_position)
 
     def on_database_sidebar_table_selected(
         self,
