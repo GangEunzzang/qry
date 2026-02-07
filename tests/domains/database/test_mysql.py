@@ -10,6 +10,14 @@ from qry.shared.exceptions import DatabaseError
 from qry.shared.types import ColumnInfo, TableInfo
 
 
+def _make_cursor_ctx(mock_cursor):
+    """Create a context manager wrapper that yields mock_cursor."""
+    ctx = MagicMock()
+    ctx.__enter__ = MagicMock(return_value=mock_cursor)
+    ctx.__exit__ = MagicMock(return_value=False)
+    return ctx
+
+
 @pytest.fixture
 def mock_connection():
     conn = MagicMock()
@@ -92,7 +100,7 @@ class TestMySQLExecute:
             (1, "Alice", "alice@example.com"),
             (2, "Bob", "bob@example.com"),
         ]
-        mock_connection.cursor.return_value = mock_cursor
+        mock_connection.cursor.return_value = _make_cursor_ctx(mock_cursor)
 
         adapter.connect()
         result = adapter.execute("SELECT * FROM users")
@@ -110,7 +118,7 @@ class TestMySQLExecute:
         mock_cursor = MagicMock()
         mock_cursor.description = None
         mock_cursor.rowcount = 1
-        mock_connection.cursor.return_value = mock_cursor
+        mock_connection.cursor.return_value = _make_cursor_ctx(mock_cursor)
 
         adapter.connect()
         result = adapter.execute("INSERT INTO users VALUES (3, 'Charlie', 'c@test.com')")
@@ -128,7 +136,7 @@ class TestMySQLExecute:
 
         mock_cursor = MagicMock()
         mock_cursor.execute.side_effect = pymysql.Error("table does not exist")
-        mock_connection.cursor.return_value = mock_cursor
+        mock_connection.cursor.return_value = _make_cursor_ctx(mock_cursor)
 
         adapter.connect()
         result = adapter.execute("SELECT * FROM nonexistent")
@@ -152,7 +160,7 @@ class TestMySQLGetTables:
 
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = [("users",), ("orders",)]
-        mock_connection.cursor.return_value = mock_cursor
+        mock_connection.cursor.return_value = _make_cursor_ctx(mock_cursor)
 
         adapter.connect()
         tables = adapter.get_tables()
@@ -178,7 +186,7 @@ class TestMySQLGetColumns:
             ("name", "varchar", "YES", "", None),
             ("email", "varchar", "YES", "", "'unknown'"),
         ]
-        mock_connection.cursor.return_value = mock_cursor
+        mock_connection.cursor.return_value = _make_cursor_ctx(mock_cursor)
 
         adapter.connect()
         columns = adapter.get_columns("users")
@@ -211,7 +219,7 @@ class TestMySQLGetDatabases:
 
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = [("mysql",), ("testdb",)]
-        mock_connection.cursor.return_value = mock_cursor
+        mock_connection.cursor.return_value = _make_cursor_ctx(mock_cursor)
 
         adapter.connect()
         databases = adapter.get_databases()
