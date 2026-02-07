@@ -7,6 +7,8 @@ from qry.domains.connection.models import ConnectionConfig
 from qry.domains.connection.service import ConnectionManager
 from qry.domains.database.base import DatabaseAdapter
 from qry.domains.database.factory import AdapterFactory
+from qry.domains.snippet.repository import SnippetRepository
+from qry.infrastructure.repositories.yaml_snippet import YamlSnippetRepository
 from qry.shared.settings import Settings
 
 
@@ -16,6 +18,7 @@ class AppContext:
 
     settings: Settings
     connection_manager: ConnectionManager
+    snippet_repository: SnippetRepository = field(default_factory=YamlSnippetRepository)
     _adapter: DatabaseAdapter | None = field(default=None, init=False)
     _query_service: QueryUseCase | None = field(default=None, init=False)
     _current_connection: ConnectionConfig | None = field(default=None, init=False)
@@ -27,6 +30,7 @@ class AppContext:
         return cls(
             settings=settings,
             connection_manager=ConnectionManager(),
+            snippet_repository=YamlSnippetRepository(),
         )
 
     def connect(self, config: ConnectionConfig) -> None:
