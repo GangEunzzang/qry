@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+pytest.importorskip("pymysql")
+
 from qry.shared.exceptions import DatabaseError
 from qry.shared.types import ColumnInfo, TableInfo
 

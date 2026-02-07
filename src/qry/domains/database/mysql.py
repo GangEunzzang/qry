@@ -1,5 +1,6 @@
 """MySQL database adapter using PyMySQL."""
 
+import contextlib
 import time
 
 import pymysql
@@ -57,26 +58,26 @@ class MySQLAdapter(DatabaseAdapter):
         start_time = time.perf_counter()
 
         try:
-            cursor = self._conn.cursor()  # type: ignore[union-attr]
-            cursor.execute(sql)
-            execution_time_ms = (time.perf_counter() - start_time) * 1000
+            with self._conn.cursor() as cursor:  # type: ignore[union-attr]
+                cursor.execute(sql)
+                execution_time_ms = (time.perf_counter() - start_time) * 1000
 
-            if cursor.description:
-                columns = [desc[0] for desc in cursor.description]
-                rows = cursor.fetchall()
-                return QueryResult(
-                    columns=columns,
-                    rows=[tuple(row) for row in rows],
-                    row_count=len(rows),
-                    execution_time_ms=execution_time_ms,
-                )
-            else:
-                return QueryResult(
-                    columns=[],
-                    rows=[],
-                    row_count=cursor.rowcount if cursor.rowcount >= 0 else 0,
-                    execution_time_ms=execution_time_ms,
-                )
+                if cursor.description:
+                    columns = [desc[0] for desc in cursor.description]
+                    rows = cursor.fetchall()
+                    return QueryResult(
+                        columns=columns,
+                        rows=[tuple(row) for row in rows],
+                        row_count=len(rows),
+                        execution_time_ms=execution_time_ms,
+                    )
+                else:
+                    return QueryResult(
+                        columns=[],
+                        rows=[],
+                        row_count=cursor.rowcount if cursor.rowcount >= 0 else 0,
+                        execution_time_ms=execution_time_ms,
+                    )
         except pymysql.Error as e:
             execution_time_ms = (time.perf_counter() - start_time) * 1000
             return QueryResult(
@@ -89,12 +90,12 @@ class MySQLAdapter(DatabaseAdapter):
             return []
 
         try:
-            cursor = self._conn.cursor()  # type: ignore[union-attr]
-            cursor.execute(
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema = DATABASE() ORDER BY table_name"
-            )
-            return [TableInfo(name=row[0]) for row in cursor.fetchall()]
+            with self._conn.cursor() as cursor:  # type: ignore[union-attr]
+                cursor.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = DATABASE() ORDER BY table_name"
+                )
+                return [TableInfo(name=row[0]) for row in cursor.fetchall()]
         except pymysql.Error:
             return []
 
@@ -103,26 +104,26 @@ class MySQLAdapter(DatabaseAdapter):
             return []
 
         try:
-            cursor = self._conn.cursor()  # type: ignore[union-attr]
-            cursor.execute(
-                "SELECT column_name, data_type, is_nullable, column_key, column_default "
-                "FROM information_schema.columns "
-                "WHERE table_schema = DATABASE() AND table_name = %s "
-                "ORDER BY ordinal_position",
-                (table_name,),
-            )
-            columns = []
-            for row in cursor.fetchall():
-                columns.append(
-                    ColumnInfo(
-                        name=row[0],
-                        data_type=row[1],
-                        nullable=row[2] == "YES",
-                        primary_key=row[3] == "PRI",
-                        default=row[4],
-                    )
+            with self._conn.cursor() as cursor:  # type: ignore[union-attr]
+                cursor.execute(
+                    "SELECT column_name, data_type, is_nullable, column_key, column_default "
+                    "FROM information_schema.columns "
+                    "WHERE table_schema = DATABASE() AND table_name = %s "
+                    "ORDER BY ordinal_position",
+                    (table_name,),
                 )
-            return columns
+                columns = []
+                for row in cursor.fetchall():
+                    columns.append(
+                        ColumnInfo(
+                            name=row[0],
+                            data_type=row[1],
+                            nullable=row[2] == "YES",
+                            primary_key=row[3] == "PRI",
+                            default=row[4],
+                        )
+                    )
+                return columns
         except pymysql.Error:
             return []
 
@@ -131,12 +132,13 @@ class MySQLAdapter(DatabaseAdapter):
             return []
 
         try:
-            cursor = self._conn.cursor()  # type: ignore[union-attr]
-            cursor.execute("SHOW DATABASES")
-            return [row[0] for row in cursor.fetchall()]
+            with self._conn.cursor() as cursor:  # type: ignore[union-attr]
+                cursor.execute("SHOW DATABASES")
+                return [row[0] for row in cursor.fetchall()]
         except pymysql.Error:
             return []
 
     def cancel(self) -> None:
         if self._conn and self._conn.open:
-            self._conn.kill(self._conn.thread_id())
+            with contextlib.suppress(pymysql.Error):
+                self._conn.kill(self._conn.thread_id())
