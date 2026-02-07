@@ -9,10 +9,11 @@ from textual.widgets import Static, TextArea
 from textual.widgets.text_area import Selection
 
 from qry.domains.query.query_formatter import format_sql
-from qry.domains.query.models import CompletionItem
+from qry.domains.query.models import CompletionItem, HistoryEntry
 from qry.shared.settings import EditorSettings
 from qry.ui.widgets.widget_completion import CompletionDropdown
 from qry.ui.widgets.widget_error_bar import ErrorBar
+from qry.ui.widgets.widget_search_bar import ReverseSearchBar
 
 
 class SqlEditor(Static):
@@ -39,6 +40,7 @@ class SqlEditor(Static):
         Binding("ctrl+space", "complete", "Complete"),
         Binding("ctrl+h", "history", "History"),
         Binding("ctrl+shift+f", "format", "Format SQL", priority=True),
+        Binding("ctrl+r", "reverse_search", "Search History"),
     ]
 
     class HistoryRequested(Message):
@@ -57,7 +59,10 @@ class SqlEditor(Static):
         super().__init__(id=id)
         self._settings = settings or EditorSettings()
         self._text_area: TextArea | None = None
-        self._completion_callback: Callable[[str, int], list[CompletionItem]] | None = None
+        self._completion_callback: Callable[[str, int], list[CompletionItem]] | None = (
+            None
+        )
+        self._search_callback: Callable[[str, int], list[HistoryEntry]] | None = None
 
     def compose(self) -> ComposeResult:
         yield TextArea(
@@ -69,6 +74,7 @@ class SqlEditor(Static):
         )
         yield CompletionDropdown(id="completion-dropdown")
         yield ErrorBar(id="error-bar")
+        yield ReverseSearchBar(id="search-bar")
 
     def on_mount(self) -> None:
         self._text_area = self.query_one("#sql-input", TextArea)
@@ -78,6 +84,11 @@ class SqlEditor(Static):
         self, callback: Callable[[str, int], list[CompletionItem]] | None
     ) -> None:
         self._completion_callback = callback
+
+    def set_search_callback(
+        self, callback: Callable[[str, int], list[HistoryEntry]] | None
+    ) -> None:
+        self._search_callback = callback
 
     def _get_cursor_offset(self) -> int:
         """Convert TextArea cursor (row, col) to flat character offset."""
@@ -140,6 +151,28 @@ class SqlEditor(Static):
 
     def on_completion_dropdown_dismissed(
         self, event: CompletionDropdown.Dismissed
+    ) -> None:
+        if self._text_area:
+            self._text_area.focus()
+
+    def action_reverse_search(self) -> None:
+        search_bar = self.query_one("#search-bar", ReverseSearchBar)
+        if search_bar.is_visible:
+            search_bar.action_next_match()
+            return
+        if self._search_callback:
+            search_bar.set_search_callback(self._search_callback)
+        search_bar.open()
+
+    def on_reverse_search_bar_accepted(
+        self, event: ReverseSearchBar.Accepted
+    ) -> None:
+        self.set_query(event.query)
+        if self._text_area:
+            self._text_area.focus()
+
+    def on_reverse_search_bar_cancelled(
+        self, event: ReverseSearchBar.Cancelled
     ) -> None:
         if self._text_area:
             self._text_area.focus()
