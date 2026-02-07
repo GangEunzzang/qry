@@ -92,6 +92,18 @@ class TestQueryUseCase:
         assert len(results) == 2
         queries = [r.query for r in results]
         assert all("users" in q.lower() for q in queries)
+        # Newest first
+        assert results[0].query == "SELECT id FROM users"
+        assert results[1].query == "SELECT * FROM users"
+
+    def test_search_history_with_limit(self, use_case: QueryUseCase):
+        for i in range(10):
+            use_case.execute(f"SELECT {i} FROM users")
+
+        results = use_case.search_history("users", limit=3)
+
+        assert len(results) == 3
+        assert results[0].query == "SELECT 9 FROM users"
 
     def test_clear_history(self, use_case: QueryUseCase):
         use_case.execute("SELECT * FROM users")

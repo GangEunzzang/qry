@@ -65,8 +65,10 @@ class MainScreen(Widget):
         editor = self.query_one("#editor", SqlEditor)
         if self._ctx.query_service:
             editor.set_completion_callback(self._ctx.query_service.get_completions)
+            editor.set_search_callback(self._ctx.query_service.search_history)
         else:
             editor.set_completion_callback(None)
+            editor.set_search_callback(None)
 
     def _update_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar", DatabaseSidebar)

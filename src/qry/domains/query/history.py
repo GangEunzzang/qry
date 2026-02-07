@@ -45,6 +45,17 @@ class HistoryManager:
         pattern_lower = pattern.lower()
         return [e for e in self._entries if pattern_lower in e.query.lower()]
 
+    def search_reverse(self, pattern: str, limit: int = 50) -> list[HistoryEntry]:
+        """Search history returning newest matches first."""
+        pattern_lower = pattern.lower()
+        results: list[HistoryEntry] = []
+        for entry in reversed(self._entries):
+            if pattern_lower in entry.query.lower():
+                results.append(entry)
+                if len(results) >= limit:
+                    break
+        return results
+
     def get_recent(self, count: int = 50) -> list[HistoryEntry]:
         return list(reversed(self._entries[-count:]))
 

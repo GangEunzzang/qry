@@ -64,8 +64,8 @@ class QueryUseCase:
     def get_history(self, count: int = 50) -> list[HistoryEntry]:
         return self.history.get_recent(count)
 
-    def search_history(self, pattern: str) -> list[HistoryEntry]:
-        return self.history.search(pattern)
+    def search_history(self, pattern: str, limit: int = 50) -> list[HistoryEntry]:
+        return self.history.search_reverse(pattern, limit=limit)
 
     def clear_history(self) -> None:
         self.history.clear()

@@ -93,6 +93,34 @@ class TestHistoryManager:
         assert entries[0].query == "SELECT 9"
         assert entries[-1].query == "SELECT 5"
 
+    def test_search_reverse_returns_newest_first(self, history: HistoryManager):
+        history.add("SELECT * FROM users")
+        history.add("SELECT * FROM posts")
+        history.add("INSERT INTO users VALUES (1)")
+
+        results = history.search_reverse("users")
+
+        assert len(results) == 2
+        assert results[0].query == "INSERT INTO users VALUES (1)"
+        assert results[1].query == "SELECT * FROM users"
+
+    def test_search_reverse_respects_limit(self, history: HistoryManager):
+        for i in range(10):
+            history.add(f"SELECT {i} FROM users")
+
+        results = history.search_reverse("users", limit=3)
+
+        assert len(results) == 3
+        assert results[0].query == "SELECT 9 FROM users"
+
+    def test_search_reverse_case_insensitive(self, history: HistoryManager):
+        history.add("SELECT * FROM USERS")
+        history.add("select * from users")
+
+        results = history.search_reverse("users")
+
+        assert len(results) == 2
+
     def test_set_connection(self, history: HistoryManager):
         history.set_connection("test_db")
         history.add("SELECT 1")
