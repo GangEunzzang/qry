@@ -79,3 +79,9 @@ class TestQuerySplitter:
         """
         result = QuerySplitter.split(sql)
         assert len(result) == 3
+
+    def test_unterminated_single_quote(self):
+        assert QuerySplitter.split("SELECT 'unterminated") == ["SELECT 'unterminated"]
+
+    def test_unterminated_block_comment(self):
+        assert QuerySplitter.split("SELECT /* unterminated") == ["SELECT /* unterminated"]

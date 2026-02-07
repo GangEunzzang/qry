@@ -91,7 +91,7 @@ class MainScreen(Widget):
             last = results[-1]
             if last.error:
                 editor = self.query_one("#editor", SqlEditor)
-                editor.show_error(last.error)
+                editor.show_error(last.error, last.error_position)
 
     def on_database_sidebar_table_selected(
         self,

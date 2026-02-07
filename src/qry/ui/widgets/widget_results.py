@@ -92,10 +92,17 @@ class ResultsTable(Static):
         success = sum(1 for r in results if r.is_success)
         if total > 1:
             total_time = sum(r.execution_time_ms for r in results)
-            if display_result.error:
-                self.border_title = f"Results - {success}/{total} queries ({total_time:.1f}ms) - Error in query {success + 1}"
+            last_result = results[-1]
+            if last_result.error:
+                error_msg = f"Error in query {success + 1}"
+                self.border_title = (
+                    f"Results - {success}/{total} queries"
+                    f" ({total_time:.1f}ms) - {error_msg}"
+                )
             else:
-                self.border_title = f"Results - {total} queries ({total_time:.1f}ms)"
+                self.border_title = (
+                    f"Results - {total} queries ({total_time:.1f}ms)"
+                )
 
     def action_export(self) -> None:
         if self._result:
