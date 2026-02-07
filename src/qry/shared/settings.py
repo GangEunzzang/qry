@@ -1,9 +1,8 @@
 """Application settings."""
 
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
-
-import tomllib
 
 from qry.shared.constants import (
     DEFAULT_HISTORY_SIZE,

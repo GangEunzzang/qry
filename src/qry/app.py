@@ -6,7 +6,9 @@ from textual.widgets import Footer, Header
 
 from qry.context import AppContext
 from qry.domains.connection.models import ConnectionConfig, DatabaseType
+from qry.shared.constants import AVAILABLE_THEMES
 from qry.ui.screens.screen_main import MainScreen
+from qry.ui.screens.screen_theme import ThemeScreen
 
 
 class QryApp(App):
@@ -19,6 +21,7 @@ class QryApp(App):
         Binding("ctrl+q", "quit", "Quit", priority=True),
         Binding("ctrl+c", "cancel", "Cancel", priority=True),
         Binding("f1", "help", "Help"),
+        Binding("f2", "change_theme", "Theme"),
     ]
 
     CSS = """
@@ -46,6 +49,7 @@ class QryApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        self._apply_theme(self._ctx.settings.theme)
         if self._initial_connection:
             self._connect(self._initial_connection)
 
@@ -69,9 +73,22 @@ class QryApp(App):
 
     def action_help(self) -> None:
         self.notify(
-            "Ctrl+Enter: Run query | Ctrl+B: Toggle sidebar | Ctrl+Q: Quit",
+            "Ctrl+Enter: Run query | Ctrl+B: Toggle sidebar | F2: Theme | Ctrl+Q: Quit",
             title="qry Help",
         )
+
+    def _apply_theme(self, theme_name: str) -> None:
+        if theme_name in AVAILABLE_THEMES:
+            self.theme = theme_name
+
+    def action_change_theme(self) -> None:
+        def _on_theme_selected(theme_name: str | None) -> None:
+            if theme_name:
+                self._apply_theme(theme_name)
+                self._ctx.settings.theme = theme_name
+                self._ctx.settings.save()
+
+        self.push_screen(ThemeScreen(self.theme), callback=_on_theme_selected)
 
 
 def run(
