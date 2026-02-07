@@ -1,5 +1,7 @@
 """Results table widget."""
 
+import json
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
@@ -29,6 +31,7 @@ class ResultsTable(Static):
     BINDINGS = [
         Binding("ctrl+e", "export", "Export"),
         Binding("ctrl+c", "copy", "Copy"),
+        Binding("enter", "copy_cell", "Copy Cell"),
     ]
 
     class ExportRequested(Message):
@@ -46,7 +49,7 @@ class ResultsTable(Static):
 
     def on_mount(self) -> None:
         self._table = self.query_one("#results-table", DataTable)
-        self._table.cursor_type = "row"
+        self._table.cursor_type = "cell"
         self.border_title = "Results"
 
     def set_result(self, result: QueryResult) -> None:
@@ -108,5 +111,54 @@ class ResultsTable(Static):
         if self._result:
             self.post_message(self.ExportRequested(self._result))
 
+    def _get_row_as_json(self, row_index: int) -> str | None:
+        """Get a row as a JSON string."""
+        if not self._result:
+            return None
+        if row_index < 0 or row_index >= len(self._result.rows):
+            return None
+        row_data = self._result.rows[row_index]
+        row_dict = {}
+        for i, col in enumerate(self._result.columns):
+            value = row_data[i] if i < len(row_data) else None
+            row_dict[col] = value
+        return json.dumps(row_dict, ensure_ascii=False, default=str)
+
+    def _get_cell_value(self, row: int, col: int) -> str | None:
+        """Get a cell value as a string."""
+        if not self._result:
+            return None
+        if row < 0 or row >= len(self._result.rows):
+            return None
+        if col < 0 or col >= len(self._result.columns):
+            return None
+        value = self._result.rows[row][col]
+        return str(value) if value is not None else "NULL"
+
     def action_copy(self) -> None:
-        self.app.notify("Copy not yet implemented")
+        """Copy current row as JSON to clipboard."""
+        if not self._result or not self._table:
+            return
+        cursor_row = self._table.cursor_row
+        if cursor_row is None:
+            return
+        json_str = self._get_row_as_json(cursor_row)
+        if json_str is None:
+            return
+        self.app.copy_to_clipboard(json_str)
+        self.app.notify(f"Row {cursor_row + 1} copied to clipboard")
+
+    def action_copy_cell(self) -> None:
+        """Copy current cell value to clipboard."""
+        if not self._result or not self._table:
+            return
+        cursor_row = self._table.cursor_row
+        cursor_col = self._table.cursor_column
+        if cursor_row is None or cursor_col is None:
+            return
+        text = self._get_cell_value(cursor_row, cursor_col)
+        if text is None:
+            return
+        self.app.copy_to_clipboard(text)
+        col_name = self._result.columns[cursor_col]
+        self.app.notify(f"Copied: {col_name} = {text}")
