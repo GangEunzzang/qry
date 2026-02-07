@@ -69,13 +69,18 @@ class SnippetScreen(ModalScreen[str | None]):
         self._refresh_list()
         self.query_one("#snippet-search", Input).focus()
 
+    @staticmethod
+    def _format_snippet_label(snippet: Snippet) -> str:
+        """Build display label from a Snippet."""
+        category = f"[{snippet.category}] " if snippet.category else ""
+        desc = f" - {snippet.description}" if snippet.description else ""
+        return f"{category}{snippet.name}{desc}"
+
     def _refresh_list(self) -> None:
         option_list = self.query_one("#snippet-list", OptionList)
         option_list.clear_options()
         for snippet in self._filtered:
-            category = f"[{snippet.category}] " if snippet.category else ""
-            desc = f" - {snippet.description}" if snippet.description else ""
-            label = f"{category}{snippet.name}{desc}"
+            label = self._format_snippet_label(snippet)
             option_list.add_option(Option(label))
         if self._filtered:
             option_list.highlighted = 0

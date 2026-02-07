@@ -1,6 +1,7 @@
 """Tests for SnippetScreen."""
 
 from datetime import datetime
+from unittest.mock import MagicMock, patch
 
 from qry.domains.snippet.models import Snippet
 from qry.ui.screens.screen_snippet import SnippetScreen
@@ -38,77 +39,52 @@ class TestSnippetScreen:
         assert screen._snippets == snippets
         assert screen._filtered == snippets
 
-    def test_filter_by_name(self):
+    @patch.object(SnippetScreen, "_refresh_list")
+    def test_filter_by_name(self, _mock_refresh):
         snippets = self._make_snippets()
         screen = SnippetScreen(snippets)
-        pattern = "select"
-        screen._filtered = [
-            s
-            for s in snippets
-            if pattern in s.name.lower()
-            or pattern in s.description.lower()
-            or pattern in s.category.lower()
-            or pattern in s.query.lower()
-        ]
+        event = MagicMock()
+        event.value = "select"
+        screen.on_input_changed(event)
         assert len(screen._filtered) == 2  # select_users and count_orders (has SELECT in query)
 
-    def test_filter_by_description(self):
+    @patch.object(SnippetScreen, "_refresh_list")
+    def test_filter_by_description(self, _mock_refresh):
         snippets = self._make_snippets()
         screen = SnippetScreen(snippets)
-        pattern = "test post"
-        screen._filtered = [
-            s
-            for s in snippets
-            if pattern in s.name.lower()
-            or pattern in s.description.lower()
-            or pattern in s.category.lower()
-            or pattern in s.query.lower()
-        ]
+        event = MagicMock()
+        event.value = "test post"
+        screen.on_input_changed(event)
         assert len(screen._filtered) == 1
         assert screen._filtered[0].name == "insert_post"
 
-    def test_filter_by_category(self):
+    @patch.object(SnippetScreen, "_refresh_list")
+    def test_filter_by_category(self, _mock_refresh):
         snippets = self._make_snippets()
         screen = SnippetScreen(snippets)
-        pattern = "mutations"
-        screen._filtered = [
-            s
-            for s in snippets
-            if pattern in s.name.lower()
-            or pattern in s.description.lower()
-            or pattern in s.category.lower()
-            or pattern in s.query.lower()
-        ]
+        event = MagicMock()
+        event.value = "mutations"
+        screen.on_input_changed(event)
         assert len(screen._filtered) == 1
         assert screen._filtered[0].name == "insert_post"
 
-    def test_filter_by_query_content(self):
+    @patch.object(SnippetScreen, "_refresh_list")
+    def test_filter_by_query_content(self, _mock_refresh):
         snippets = self._make_snippets()
         screen = SnippetScreen(snippets)
-        pattern = "count(*)"
-        screen._filtered = [
-            s
-            for s in snippets
-            if pattern in s.name.lower()
-            or pattern in s.description.lower()
-            or pattern in s.category.lower()
-            or pattern in s.query.lower()
-        ]
+        event = MagicMock()
+        event.value = "count(*)"
+        screen.on_input_changed(event)
         assert len(screen._filtered) == 1
         assert screen._filtered[0].name == "count_orders"
 
-    def test_filter_no_match(self):
+    @patch.object(SnippetScreen, "_refresh_list")
+    def test_filter_no_match(self, _mock_refresh):
         snippets = self._make_snippets()
         screen = SnippetScreen(snippets)
-        pattern = "nonexistent"
-        screen._filtered = [
-            s
-            for s in snippets
-            if pattern in s.name.lower()
-            or pattern in s.description.lower()
-            or pattern in s.category.lower()
-            or pattern in s.query.lower()
-        ]
+        event = MagicMock()
+        event.value = "nonexistent"
+        screen.on_input_changed(event)
         assert len(screen._filtered) == 0
 
     def test_empty_snippets(self):
@@ -123,9 +99,7 @@ class TestSnippetScreen:
             description="A test snippet",
             category="dev",
         )
-        category = f"[{snippet.category}] " if snippet.category else ""
-        desc = f" - {snippet.description}" if snippet.description else ""
-        label = f"{category}{snippet.name}{desc}"
+        label = SnippetScreen._format_snippet_label(snippet)
         assert label == "[dev] test - A test snippet"
 
     def test_label_format_without_category(self):
@@ -134,9 +108,7 @@ class TestSnippetScreen:
             query="SELECT 1",
             description="A test snippet",
         )
-        category = f"[{snippet.category}] " if snippet.category else ""
-        desc = f" - {snippet.description}" if snippet.description else ""
-        label = f"{category}{snippet.name}{desc}"
+        label = SnippetScreen._format_snippet_label(snippet)
         assert label == "test - A test snippet"
 
     def test_label_format_without_description(self):
@@ -145,14 +117,10 @@ class TestSnippetScreen:
             query="SELECT 1",
             category="dev",
         )
-        category = f"[{snippet.category}] " if snippet.category else ""
-        desc = f" - {snippet.description}" if snippet.description else ""
-        label = f"{category}{snippet.name}{desc}"
+        label = SnippetScreen._format_snippet_label(snippet)
         assert label == "[dev] test"
 
     def test_label_format_minimal(self):
         snippet = Snippet(name="test", query="SELECT 1")
-        category = f"[{snippet.category}] " if snippet.category else ""
-        desc = f" - {snippet.description}" if snippet.description else ""
-        label = f"{category}{snippet.name}{desc}"
+        label = SnippetScreen._format_snippet_label(snippet)
         assert label == "test"

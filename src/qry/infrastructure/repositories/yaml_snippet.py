@@ -1,6 +1,6 @@
 """YAML-based snippet repository implementation."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
@@ -31,9 +31,10 @@ class YamlSnippetRepository(SnippetRepository):
             try:
                 created_at = item.get("created_at")
                 if isinstance(created_at, str):
-                    created_at = datetime.fromisoformat(created_at)
+                    parsed = datetime.fromisoformat(created_at)
+                    created_at = parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
                 elif not isinstance(created_at, datetime):
-                    created_at = datetime.now()
+                    created_at = datetime.now(UTC)
 
                 snippets.append(
                     Snippet(

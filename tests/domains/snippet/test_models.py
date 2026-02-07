@@ -1,6 +1,6 @@
 """Tests for Snippet models."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from qry.domains.snippet.models import Snippet
 
@@ -27,9 +27,9 @@ class TestSnippet:
         assert snippet.category == ""
 
     def test_created_at_default(self):
-        before = datetime.now()
+        before = datetime.now(UTC)
         snippet = Snippet(name="test", query="SELECT 1")
-        after = datetime.now()
+        after = datetime.now(UTC)
         assert before <= snippet.created_at <= after
 
     def test_created_at_explicit(self):
