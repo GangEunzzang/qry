@@ -242,6 +242,18 @@ class TestSortedRows:
         widget._sorted_rows()
         assert sample_result.rows == original_rows
 
+    def test_mixed_types_fallback_to_string_sort(self, widget: ResultsTable) -> None:
+        """Mixed types fall back to string comparison."""
+        widget._result = QueryResult(
+            columns=["val"],
+            rows=[(1,), ("b",), (2,), ("a",)],
+            row_count=4,
+        )
+        widget._sort_column = 0
+        widget._sort_direction = SortDirection.ASC
+        rows = widget._sorted_rows()
+        assert rows == [(1,), (2,), ("a",), ("b",)]
+
 
 class TestToggleSort:
     @pytest.fixture
