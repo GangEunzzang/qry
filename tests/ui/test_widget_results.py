@@ -213,7 +213,7 @@ class TestSortedRows:
         assert rows[3][0] is None
         assert rows[4][0] is None
 
-    def test_none_values_sorted_last_desc(self, widget: ResultsTable) -> None:
+    def test_none_values_sorted_first_desc(self, widget: ResultsTable) -> None:
         widget._result = QueryResult(
             columns=["val"],
             rows=[(None,), (1,), (3,), (2,)],

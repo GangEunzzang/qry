@@ -129,7 +129,15 @@ class ResultsTable(Static):
                 return (1, "")
             return (0, val)
 
-        rows.sort(key=sort_key, reverse=reverse)
+        try:
+            rows.sort(key=sort_key, reverse=reverse)
+        except TypeError:
+            def safe_sort_key(row: tuple) -> tuple:
+                val = row[col_idx]
+                if val is None:
+                    return (1, "")
+                return (0, str(val))
+            rows.sort(key=safe_sort_key, reverse=reverse)
         return rows
 
     def set_results(self, results: list[QueryResult]) -> None:
