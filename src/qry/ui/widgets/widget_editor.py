@@ -8,6 +8,7 @@ from textual.message import Message
 from textual.widgets import Static, TextArea
 from textual.widgets.text_area import Selection
 
+from qry.domains.query.query_formatter import format_sql
 from qry.domains.query.models import CompletionItem
 from qry.shared.settings import EditorSettings
 from qry.ui.widgets.widget_completion import CompletionDropdown
@@ -37,6 +38,7 @@ class SqlEditor(Static):
         Binding("ctrl+enter", "execute", "Run Query", priority=True),
         Binding("ctrl+space", "complete", "Complete"),
         Binding("ctrl+h", "history", "History"),
+        Binding("ctrl+shift+f", "format", "Format SQL", priority=True),
     ]
 
     class HistoryRequested(Message):
@@ -144,6 +146,13 @@ class SqlEditor(Static):
 
     def action_history(self) -> None:
         self.post_message(self.HistoryRequested())
+
+    def action_format(self) -> None:
+        if self._text_area:
+            raw = self._text_area.text.strip()
+            if raw:
+                self._text_area.text = format_sql(raw)
+                self._text_area.cursor_location = (0, 0)
 
     def set_query(self, query: str) -> None:
         if self._text_area:
