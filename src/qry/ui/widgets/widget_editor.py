@@ -11,6 +11,7 @@ from textual.widgets.text_area import Selection
 from qry.domains.query.models import CompletionItem
 from qry.shared.settings import EditorSettings
 from qry.ui.widgets.widget_completion import CompletionDropdown
+from qry.ui.widgets.widget_error_bar import ErrorBar
 
 
 class SqlEditor(Static):
@@ -65,6 +66,7 @@ class SqlEditor(Static):
             id="sql-input",
         )
         yield CompletionDropdown(id="completion-dropdown")
+        yield ErrorBar(id="error-bar")
 
     def on_mount(self) -> None:
         self._text_area = self.query_one("#sql-input", TextArea)
@@ -88,6 +90,7 @@ class SqlEditor(Static):
 
     def action_execute(self) -> None:
         if self._text_area:
+            self.clear_error()
             query = self._text_area.text.strip()
             if query:
                 self.post_message(self.ExecuteRequested(query))
@@ -152,5 +155,12 @@ class SqlEditor(Static):
         return ""
 
     def show_error(self, message: str, position: int | None = None) -> None:
-        # TODO: Implement inline error display
-        self.app.notify(f"Error: {message}", severity="error")
+        if self._settings.inline_errors:
+            error_bar = self.query_one("#error-bar", ErrorBar)
+            error_bar.show_error(message, position)
+        else:
+            self.app.notify(f"Error: {message}", severity="error")
+
+    def clear_error(self) -> None:
+        error_bar = self.query_one("#error-bar", ErrorBar)
+        error_bar.clear_error()
