@@ -61,8 +61,10 @@ class TestFormatSql:
 
     def test_normalize_whitespace(self):
         result = format_sql("select  *   from    users")
-        # No double spaces in the result
-        assert "  " not in result.replace("\n  ", "\nXX")  # allow indentation
+        lines = result.split("\n")
+        for line in lines:
+            stripped = line.lstrip()
+            assert "  " not in stripped, f"Double space in: {line}"
 
     def test_preserves_string_literals(self):
         result = format_sql("select * from users where name = 'John Doe'")

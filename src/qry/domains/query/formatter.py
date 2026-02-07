@@ -53,6 +53,8 @@ _MULTI_WORD_KEYWORDS = [
     "IS NULL",
 ]
 
+_MULTI_WORD_KEYWORDS_SET = frozenset(_MULTI_WORD_KEYWORDS)
+
 
 def _tokenize(sql: str) -> list[tuple[str, str]]:
     """Split SQL into tokens preserving strings, comments, and parentheses.
@@ -236,7 +238,7 @@ def format_sql(sql: str) -> str:
         # Uppercase keywords
         if ttype == "word" and (
             upper_value in SQL_KEYWORDS
-            or upper_value in set(_MULTI_WORD_KEYWORDS)
+            or upper_value in _MULTI_WORD_KEYWORDS_SET
         ):
             value = upper_value
 
@@ -260,12 +262,24 @@ def format_sql(sql: str) -> str:
             if parts and prev_type == "word":
                 # No space before ( if previous is a function name
                 prev_upper = prev_value.upper()
-                if prev_upper in SQL_KEYWORDS and prev_upper in (
+                if prev_upper in (
                     "COUNT",
                     "SUM",
                     "AVG",
                     "MIN",
                     "MAX",
+                    "COALESCE",
+                    "NULLIF",
+                    "CAST",
+                    "UPPER",
+                    "LOWER",
+                    "TRIM",
+                    "SUBSTRING",
+                    "ROUND",
+                    "ABS",
+                    "LENGTH",
+                    "IFNULL",
+                    "IIF",
                     "IN",
                     "NOT IN",
                 ):

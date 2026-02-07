@@ -152,6 +152,7 @@ class SqlEditor(Static):
             raw = self._text_area.text.strip()
             if raw:
                 self._text_area.text = format_sql(raw)
+                self._text_area.cursor_location = (0, 0)
 
     def set_query(self, query: str) -> None:
         if self._text_area:
