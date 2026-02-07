@@ -1,6 +1,7 @@
 """Results table widget."""
 
 import json
+from enum import Enum
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -8,6 +9,12 @@ from textual.message import Message
 from textual.widgets import DataTable, Static
 
 from qry.domains.query.models import QueryResult
+
+
+class SortDirection(Enum):
+    NONE = "none"
+    ASC = "asc"
+    DESC = "desc"
 
 
 class ResultsTable(Static):
@@ -32,6 +39,7 @@ class ResultsTable(Static):
         Binding("ctrl+e", "export", "Export"),
         Binding("ctrl+c", "copy", "Copy"),
         Binding("enter", "copy_cell", "Copy Cell"),
+        Binding("s", "toggle_sort", "Sort"),
     ]
 
     class ExportRequested(Message):
@@ -43,6 +51,8 @@ class ResultsTable(Static):
         super().__init__(id=id)
         self._result: QueryResult | None = None
         self._table: DataTable | None = None
+        self._sort_column: int | None = None
+        self._sort_direction: SortDirection = SortDirection.NONE
 
     def compose(self) -> ComposeResult:
         yield DataTable(id="results-table")
@@ -54,10 +64,20 @@ class ResultsTable(Static):
 
     def set_result(self, result: QueryResult) -> None:
         self._result = result
+        self._sort_column = None
+        self._sort_direction = SortDirection.NONE
 
         if not self._table:
             return
 
+        self._render_table()
+
+    def _render_table(self) -> None:
+        """Render the DataTable with current result and sort state."""
+        if not self._table or not self._result:
+            return
+
+        result = self._result
         self._table.clear(columns=True)
 
         if result.error:
@@ -70,13 +90,55 @@ class ResultsTable(Static):
             self.border_title = f"Results - {result.row_count} rows affected"
             return
 
-        for col in result.columns:
-            self._table.add_column(col)
+        for i, col in enumerate(result.columns):
+            label = self._column_label(col, i)
+            self._table.add_column(label)
 
-        for row in result.rows:
+        rows = self._sorted_rows()
+        for row in rows:
             self._table.add_row(*[str(v) if v is not None else "NULL" for v in row])
 
         self.border_title = f"Results - {result.row_count} rows ({result.execution_time_ms:.1f}ms)"
+
+    def _column_label(self, name: str, index: int) -> str:
+        """Return column label with sort indicator if applicable."""
+        if self._sort_column == index:
+            if self._sort_direction == SortDirection.ASC:
+                return f"{name} \u25b2"
+            if self._sort_direction == SortDirection.DESC:
+                return f"{name} \u25bc"
+        return name
+
+    def _sorted_rows(self) -> list[tuple]:
+        """Return rows sorted by current sort state."""
+        if not self._result:
+            return []
+        rows = list(self._result.rows)
+        if (
+            self._sort_column is None
+            or self._sort_direction == SortDirection.NONE
+        ):
+            return rows
+
+        col_idx = self._sort_column
+        reverse = self._sort_direction == SortDirection.DESC
+
+        def sort_key(row: tuple) -> tuple:
+            val = row[col_idx]
+            if val is None:
+                return (1, "")
+            return (0, val)
+
+        try:
+            rows.sort(key=sort_key, reverse=reverse)
+        except TypeError:
+            def safe_sort_key(row: tuple) -> tuple:
+                val = row[col_idx]
+                if val is None:
+                    return (1, "")
+                return (0, str(val))
+            rows.sort(key=safe_sort_key, reverse=reverse)
+        return rows
 
     def set_results(self, results: list[QueryResult]) -> None:
         """Display multiple query results (shows last successful result with summary)."""
@@ -110,6 +172,31 @@ class ResultsTable(Static):
     def action_export(self) -> None:
         if self._result:
             self.post_message(self.ExportRequested(self._result))
+
+    def action_toggle_sort(self) -> None:
+        """Toggle sort on the current column: NONE -> ASC -> DESC -> NONE."""
+        if not self._result or not self._table or not self._result.columns:
+            return
+
+        col_idx = self._table.cursor_column
+        if col_idx is None or col_idx < 0 or col_idx >= len(self._result.columns):
+            return
+
+        if self._sort_column == col_idx:
+            # Cycle direction on same column
+            if self._sort_direction == SortDirection.NONE:
+                self._sort_direction = SortDirection.ASC
+            elif self._sort_direction == SortDirection.ASC:
+                self._sort_direction = SortDirection.DESC
+            else:
+                self._sort_direction = SortDirection.NONE
+                self._sort_column = None
+        else:
+            # New column: start with ASC
+            self._sort_column = col_idx
+            self._sort_direction = SortDirection.ASC
+
+        self._render_table()
 
     def _get_row_as_json(self, row_index: int) -> str | None:
         """Get a row as a JSON string."""
