@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass, field
 
+from qry.application.query_use_case import QueryUseCase
 from qry.domains.connection.models import ConnectionConfig
 from qry.domains.connection.service import ConnectionManager
 from qry.domains.database.base import DatabaseAdapter
 from qry.domains.database.factory import AdapterFactory
-from qry.application.query_use_case import QueryUseCase
 from qry.shared.settings import Settings
 
 
@@ -74,6 +74,14 @@ class AppContext:
     @property
     def current_connection(self) -> ConnectionConfig | None:
         return self._current_connection
+
+    def test_connection(self, config: ConnectionConfig) -> tuple[bool, str]:
+        """Test a connection without modifying current state."""
+        try:
+            adapter = AdapterFactory.create(config)
+            return adapter.test_connection()
+        except Exception as e:
+            return False, str(e)
 
     def get_connections(self) -> list[ConnectionConfig]:
         return self.connection_manager.list_all()

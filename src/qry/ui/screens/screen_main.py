@@ -38,6 +38,7 @@ class MainScreen(Widget):
 
     BINDINGS = [
         Binding("ctrl+b", "toggle_sidebar", "Toggle Sidebar"),
+        Binding("ctrl+t", "test_connection", "Test Connection"),
         Binding("f1", "help", "Help"),
     ]
 
@@ -146,6 +147,14 @@ class MainScreen(Widget):
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar", DatabaseSidebar)
         sidebar.toggle()
+
+    def action_test_connection(self) -> None:
+        if self._ctx.current_connection:
+            success, message = self._ctx.test_connection(self._ctx.current_connection)
+            severity = "information" if success else "error"
+            self.app.notify(message, title="Connection Test", severity=severity)
+        else:
+            self.app.notify("No active connection", severity="warning")
 
     def action_help(self) -> None:
         self.app.notify("Press Ctrl+Enter to run query, Ctrl+B for sidebar")

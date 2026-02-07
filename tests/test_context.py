@@ -121,3 +121,29 @@ class TestAppContext:
         connections = context.get_connections()
         names = [c.name for c in connections]
         assert "to_delete" not in names
+
+    def test_test_connection_success(self, context: AppContext, sample_sqlite_db: Path):
+        config = ConnectionConfig(
+            name="test",
+            db_type=DatabaseType.SQLITE,
+            path=str(sample_sqlite_db),
+        )
+
+        success, message = context.test_connection(config)
+
+        assert success is True
+        assert message == "Connection successful"
+        # Should not affect current state
+        assert not context.is_connected
+
+    def test_test_connection_invalid_config(self, context: AppContext):
+        config = ConnectionConfig(
+            name="bad",
+            db_type=DatabaseType.SQLITE,
+            path=None,
+        )
+
+        success, message = context.test_connection(config)
+
+        assert success is False
+        assert message  # should have an error message

@@ -45,5 +45,23 @@ class DatabaseAdapter(SchemaProvider, ABC):
     def get_databases(self) -> list[str]:
         pass
 
+    def test_connection(self) -> tuple[bool, str]:
+        """Test database connection. Returns (success, message)."""
+        try:
+            was_connected = self.is_connected()
+            if not was_connected:
+                self.connect()
+
+            result = self.execute("SELECT 1")
+
+            if not was_connected:
+                self.disconnect()
+
+            if result.is_success:
+                return True, "Connection successful"
+            return False, result.error or "Unknown error"
+        except Exception as e:
+            return False, str(e)
+
     def cancel(self) -> None:
         pass
