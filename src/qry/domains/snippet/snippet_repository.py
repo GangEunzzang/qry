@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from qry.domains.snippet.models import Snippet
+from qry.domains.snippet.snippet_models import Snippet
 
 
 class SnippetRepository(ABC):

@@ -7,8 +7,8 @@ from qry.domains.connection.models import ConnectionConfig
 from qry.domains.connection.service import ConnectionManager
 from qry.domains.database.base import DatabaseAdapter
 from qry.domains.database.factory import AdapterFactory
-from qry.domains.snippet.repository import SnippetRepository
-from qry.infrastructure.repositories.yaml_snippet import YamlSnippetRepository
+from qry.domains.snippet.snippet_repository import SnippetRepository
+from qry.infrastructure.repositories.snippet_yaml import YamlSnippetRepository
 from qry.shared.settings import Settings
 
 

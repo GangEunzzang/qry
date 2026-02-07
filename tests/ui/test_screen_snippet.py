@@ -3,7 +3,7 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from qry.domains.snippet.models import Snippet
+from qry.domains.snippet.snippet_models import Snippet
 from qry.ui.screens.screen_snippet import SnippetScreen
 
 

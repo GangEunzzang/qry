@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from qry.domains.snippet.models import Snippet
-from qry.infrastructure.repositories.yaml_snippet import YamlSnippetRepository
+from qry.domains.snippet.snippet_models import Snippet
+from qry.infrastructure.repositories.snippet_yaml import YamlSnippetRepository
 
 
 class TestYamlSnippetRepository:

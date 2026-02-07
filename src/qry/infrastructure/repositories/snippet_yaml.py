@@ -5,8 +5,8 @@ from pathlib import Path
 
 import yaml
 
-from qry.domains.snippet.models import Snippet
-from qry.domains.snippet.repository import SnippetRepository
+from qry.domains.snippet.snippet_models import Snippet
+from qry.domains.snippet.snippet_repository import SnippetRepository
 from qry.shared.paths import get_config_dir
 
 
@@ -22,8 +22,11 @@ class YamlSnippetRepository(SnippetRepository):
 
         try:
             with open(self._path, encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
+                data = yaml.safe_load(f)
         except (OSError, yaml.YAMLError):
+            return []
+
+        if not isinstance(data, dict):
             return []
 
         snippets: list[Snippet] = []

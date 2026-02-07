@@ -7,7 +7,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, OptionList, Static
 from textual.widgets.option_list import Option
 
-from qry.domains.snippet.models import Snippet
+from qry.domains.snippet.snippet_models import Snippet
 
 
 class SnippetScreen(ModalScreen[str | None]):

@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from qry.domains.snippet.models import Snippet
+from qry.domains.snippet.snippet_models import Snippet
 
 
 class TestSnippet:
