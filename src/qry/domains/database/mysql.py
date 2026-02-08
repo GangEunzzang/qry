@@ -8,7 +8,7 @@ import pymysql
 from qry.domains.database.base import DatabaseAdapter
 from qry.shared.exceptions import DatabaseError
 from qry.shared.models import QueryResult
-from qry.shared.types import ColumnInfo, TableInfo
+from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
 
 
 class MySQLAdapter(DatabaseAdapter):
@@ -124,6 +124,39 @@ class MySQLAdapter(DatabaseAdapter):
                         )
                     )
                 return columns
+        except pymysql.Error:
+            return []
+
+    def get_views(self) -> list[ViewInfo]:
+        if not self.is_connected():
+            return []
+
+        try:
+            with self._conn.cursor() as cursor:  # type: ignore[union-attr]
+                cursor.execute(
+                    "SELECT table_name FROM information_schema.views "
+                    "WHERE table_schema = DATABASE() ORDER BY table_name"
+                )
+                return [ViewInfo(name=row[0]) for row in cursor.fetchall()]
+        except pymysql.Error:
+            return []
+
+    def get_indexes(self) -> list[IndexInfo]:
+        if not self.is_connected():
+            return []
+
+        try:
+            with self._conn.cursor() as cursor:  # type: ignore[union-attr]
+                cursor.execute(
+                    "SELECT DISTINCT index_name, table_name, non_unique "
+                    "FROM information_schema.statistics "
+                    "WHERE table_schema = DATABASE() "
+                    "ORDER BY index_name"
+                )
+                return [
+                    IndexInfo(name=row[0], table_name=row[1], unique=not row[2])
+                    for row in cursor.fetchall()
+                ]
         except pymysql.Error:
             return []
 

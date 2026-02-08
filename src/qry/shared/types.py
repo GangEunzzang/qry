@@ -17,3 +17,17 @@ class ColumnInfo:
     nullable: bool = True
     primary_key: bool = False
     default: str | None = None
+
+
+@dataclass(frozen=True)
+class ViewInfo:
+    name: str
+    schema: str | None = None
+
+
+@dataclass(frozen=True)
+class IndexInfo:
+    name: str
+    table_name: str
+    unique: bool = False
+    schema: str | None = None

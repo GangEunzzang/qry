@@ -7,7 +7,7 @@ import psycopg
 from qry.domains.database.base import DatabaseAdapter
 from qry.shared.exceptions import DatabaseError
 from qry.shared.models import QueryResult
-from qry.shared.types import ColumnInfo, TableInfo
+from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
 
 
 class PostgresAdapter(DatabaseAdapter):
@@ -134,6 +134,40 @@ class PostgresAdapter(DatabaseAdapter):
                 )
             )
         return columns
+
+    def get_views(self) -> list[ViewInfo]:
+        if not self.is_connected():
+            return []
+
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT table_name FROM information_schema.views "
+                "WHERE table_schema = 'public' ORDER BY table_name"
+            )
+            return [ViewInfo(name=row[0], schema="public") for row in cursor.fetchall()]
+        except psycopg.Error:
+            return []
+
+    def get_indexes(self) -> list[IndexInfo]:
+        if not self.is_connected():
+            return []
+
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT indexname, tablename, "
+                "NOT indisunique AS non_unique "
+                "FROM pg_indexes i "
+                "JOIN pg_class c ON c.relname = i.indexname "
+                "JOIN pg_index ix ON ix.indexrelid = c.oid "
+                "WHERE i.schemaname = 'public' "
+                "ORDER BY indexname"
+            )
+            return [
+                IndexInfo(name=row[0], table_name=row[1], unique=not row[2], schema="public")
+                for row in cursor.fetchall()
+            ]
+        except psycopg.Error:
+            return []
 
     def get_databases(self) -> list[str]:
         if not self.is_connected():
