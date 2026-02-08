@@ -64,9 +64,15 @@ uv.lock
 
 # Claude Code
 .claude/
+CLAUDE.md
 
-# Docs (local only)
+# Docs (symlinked from internal repo)
 docs/
+
+# Local scripts
+do_commit.py
+do_commit.sh
+patch-work/
 
 # Database files
 *.db
