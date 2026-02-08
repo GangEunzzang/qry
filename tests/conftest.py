@@ -40,6 +40,9 @@ def sample_sqlite_db(tmp_path: Path) -> Path:
     conn.execute("INSERT INTO users VALUES (2, 'Bob', 'bob@example.com')")
     conn.execute("CREATE TABLE posts (id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT)")
     conn.execute("INSERT INTO posts VALUES (1, 1, 'Hello World')")
+    conn.execute("CREATE INDEX idx_users_email ON users (email)")
+    conn.execute("CREATE UNIQUE INDEX idx_posts_user_id ON posts (user_id)")
+    conn.execute("CREATE VIEW v_active_users AS SELECT id, name FROM users WHERE name IS NOT NULL")
     conn.commit()
     conn.close()
     return db_path

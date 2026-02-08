@@ -5,9 +5,9 @@ import time
 from pathlib import Path
 
 from qry.domains.database.base import DatabaseAdapter
-from qry.shared.models import QueryResult
 from qry.shared.exceptions import DatabaseError
-from qry.shared.types import ColumnInfo, TableInfo
+from qry.shared.models import QueryResult
+from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
 
 
 class SQLiteAdapter(DatabaseAdapter):
@@ -94,6 +94,36 @@ class SQLiteAdapter(DatabaseAdapter):
                 )
             )
         return columns
+
+    def get_views(self) -> list[ViewInfo]:
+        if not self._conn:
+            return []
+
+        cursor = self._conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='view' ORDER BY name"
+        )
+        return [ViewInfo(name=row[0]) for row in cursor.fetchall()]
+
+    def get_indexes(self) -> list[IndexInfo]:
+        if not self._conn:
+            return []
+
+        cursor = self._conn.execute(
+            "SELECT name, tbl_name FROM sqlite_master "
+            "WHERE type='index' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        )
+        indexes = []
+        for row in cursor.fetchall():
+            list_cursor = self._conn.execute(
+                f'PRAGMA index_list("{row[1]}")'
+            )
+            unique = False
+            for idx_row in list_cursor.fetchall():
+                if idx_row[1] == row[0]:
+                    unique = bool(idx_row[2])
+                    break
+            indexes.append(IndexInfo(name=row[0], table_name=row[1], unique=unique))
+        return indexes
 
     def get_databases(self) -> list[str]:
         if not self._conn:
