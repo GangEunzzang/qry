@@ -155,8 +155,7 @@ class PostgresAdapter(DatabaseAdapter):
 
         try:
             cursor = self._conn.execute(  # type: ignore[union-attr]
-                "SELECT indexname, tablename, "
-                "NOT indisunique AS non_unique "
+                "SELECT indexname, tablename, indisunique "
                 "FROM pg_indexes i "
                 "JOIN pg_class c ON c.relname = i.indexname "
                 "JOIN pg_index ix ON ix.indexrelid = c.oid "
@@ -164,7 +163,7 @@ class PostgresAdapter(DatabaseAdapter):
                 "ORDER BY indexname"
             )
             return [
-                IndexInfo(name=row[0], table_name=row[1], unique=not row[2], schema="public")
+                IndexInfo(name=row[0], table_name=row[1], unique=bool(row[2]), schema="public")
                 for row in cursor.fetchall()
             ]
         except psycopg.Error as e:
