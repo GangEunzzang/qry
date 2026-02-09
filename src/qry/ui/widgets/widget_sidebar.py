@@ -5,6 +5,7 @@ from textual.message import Message
 from textual.widgets import Static, Tree
 
 from qry.domains.database.base import DatabaseAdapter
+from qry.shared.exceptions import DatabaseError
 from qry.shared.types import TableInfo
 
 
@@ -14,6 +15,7 @@ class DatabaseSidebar(Static):
     DEFAULT_CSS = """
     DatabaseSidebar {
         width: 30;
+        height: 100%;
         border: solid $primary;
         display: none;
     }
@@ -36,21 +38,27 @@ class DatabaseSidebar(Static):
         super().__init__(id=id)
         self._adapter: DatabaseAdapter | None = None
         self._tree: Tree | None = None
+        self._columns_loaded: set[str] = set()
 
     def compose(self) -> ComposeResult:
         yield Tree("Database", id="db-tree")
 
+    def set_adapter(self, adapter: DatabaseAdapter) -> None:
+        self._adapter = adapter
+        self._columns_loaded.clear()
+        if self._tree:
+            self.refresh_tree()
+
     def on_mount(self) -> None:
         self._tree = self.query_one("#db-tree", Tree)
         self._tree.root.expand()
-        self.border_title = "Tables"
-
-    def set_adapter(self, adapter: DatabaseAdapter) -> None:
-        self._adapter = adapter
-        self.refresh_tree()
+        self.border_title = "Database"
+        if self._adapter:
+            self.refresh_tree()
 
     def clear_adapter(self) -> None:
         self._adapter = None
+        self._columns_loaded.clear()
         if self._tree:
             self._tree.clear()
 
@@ -59,11 +67,61 @@ class DatabaseSidebar(Static):
             return
 
         self._tree.clear()
-        tables = self._adapter.get_tables()
+        self._columns_loaded.clear()
 
-        tables_node = self._tree.root.add("Tables", expand=True)
+        try:
+            tables = self._adapter.get_tables()
+            views = self._adapter.get_views()
+            indexes = self._adapter.get_indexes()
+        except DatabaseError as e:
+            self._tree.root.add_leaf(f"⚠ {e}")
+            return
+
+        # Tables
+        tables_node = self._tree.root.add(f"Tables ({len(tables)})", expand=True)
         for table in tables:
-            tables_node.add_leaf(table.name, data=table)
+            table_node = tables_node.add(table.name, data=table, expand=False)
+            table_node.allow_expand = True
+
+        # Views
+        if views:
+            views_node = self._tree.root.add(f"Views ({len(views)})", expand=False)
+            for view in views:
+                views_node.add_leaf(view.name, data=view)
+
+        # Indexes
+        if indexes:
+            indexes_node = self._tree.root.add(f"Indexes ({len(indexes)})", expand=False)
+            for idx in indexes:
+                label = f"{idx.name} → {idx.table_name}"
+                if idx.unique:
+                    label = f"⚷ {label}"
+                indexes_node.add_leaf(label)
+
+    def on_tree_node_expanded(self, event: Tree.NodeExpanded) -> None:
+        """Lazy-load columns when a table node is expanded."""
+        node = event.node
+        if not isinstance(node.data, TableInfo) or not self._adapter:
+            return
+
+        table_name = node.data.name
+        if table_name in self._columns_loaded:
+            return
+
+        try:
+            columns = self._adapter.get_columns(table_name)
+        except DatabaseError as e:
+            node.add_leaf(f"⚠ {e}")
+            return
+
+        self._columns_loaded.add(table_name)
+        for col in columns:
+            prefix = "🔑 " if col.primary_key else ""
+            type_str = col.data_type
+            if col.length is not None:
+                type_str = f"{col.data_type}({col.length})"
+            label = f"{prefix}{col.name} ({type_str})"
+            node.add_leaf(label)
 
     def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         if event.node.data and isinstance(event.node.data, TableInfo):

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from qry.domains.query.ports import SchemaProvider
-from qry.shared.types import ColumnInfo, TableInfo
+from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
 
 if TYPE_CHECKING:
     from qry.shared.models import QueryResult
@@ -44,6 +44,12 @@ class DatabaseAdapter(SchemaProvider, ABC):
     @abstractmethod
     def get_databases(self) -> list[str]:
         pass
+
+    def get_views(self) -> list[ViewInfo]:
+        return []
+
+    def get_indexes(self) -> list[IndexInfo]:
+        return []
 
     def test_connection(self) -> tuple[bool, str]:
         """Test database connection. Returns (success, message)."""

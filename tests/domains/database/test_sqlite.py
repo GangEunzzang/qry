@@ -177,6 +177,58 @@ class TestSQLiteAdapter:
 
         adapter.disconnect()
 
+    def test_get_views(self, sample_sqlite_db: Path):
+        adapter = SQLiteAdapter(sample_sqlite_db)
+        adapter.connect()
+
+        views = adapter.get_views()
+
+        assert len(views) == 1
+        assert views[0].name == "v_active_users"
+
+        adapter.disconnect()
+
+    def test_get_views_empty_db(self, empty_sqlite_db: Path):
+        adapter = SQLiteAdapter(empty_sqlite_db)
+        adapter.connect()
+
+        views = adapter.get_views()
+
+        assert views == []
+
+        adapter.disconnect()
+
+    def test_get_indexes(self, sample_sqlite_db: Path):
+        adapter = SQLiteAdapter(sample_sqlite_db)
+        adapter.connect()
+
+        indexes = adapter.get_indexes()
+
+        assert len(indexes) == 2
+        idx_names = [i.name for i in indexes]
+        assert "idx_users_email" in idx_names
+        assert "idx_posts_user_id" in idx_names
+
+        email_idx = next(i for i in indexes if i.name == "idx_users_email")
+        assert email_idx.table_name == "users"
+        assert email_idx.unique is False
+
+        user_id_idx = next(i for i in indexes if i.name == "idx_posts_user_id")
+        assert user_id_idx.table_name == "posts"
+        assert user_id_idx.unique is True
+
+        adapter.disconnect()
+
+    def test_get_indexes_empty_db(self, empty_sqlite_db: Path):
+        adapter = SQLiteAdapter(empty_sqlite_db)
+        adapter.connect()
+
+        indexes = adapter.get_indexes()
+
+        assert indexes == []
+
+        adapter.disconnect()
+
     def test_get_databases(self, sample_sqlite_db: Path):
         adapter = SQLiteAdapter(sample_sqlite_db)
         adapter.connect()

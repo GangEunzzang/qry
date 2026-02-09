@@ -7,11 +7,10 @@ import psycopg
 from qry.domains.database.base import DatabaseAdapter
 from qry.shared.exceptions import DatabaseError
 from qry.shared.models import QueryResult
-from qry.shared.types import ColumnInfo, TableInfo
+from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
 
 
 class PostgresAdapter(DatabaseAdapter):
-
     def __init__(
         self,
         host: str = "localhost",
@@ -94,8 +93,8 @@ class PostgresAdapter(DatabaseAdapter):
                 "WHERE table_schema = 'public' ORDER BY table_name"
             )
             return [TableInfo(name=row[0], schema="public") for row in cursor.fetchall()]
-        except psycopg.Error:
-            return []
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch tables: {e}") from e
 
     def get_columns(self, table_name: str) -> list[ColumnInfo]:
         if not self.is_connected():
@@ -103,7 +102,8 @@ class PostgresAdapter(DatabaseAdapter):
 
         try:
             cursor = self._conn.execute(  # type: ignore[union-attr]
-                "SELECT column_name, data_type, is_nullable, column_default "
+                "SELECT column_name, data_type, is_nullable, column_default, "
+                "character_maximum_length "
                 "FROM information_schema.columns "
                 "WHERE table_schema = 'public' AND table_name = %s "
                 "ORDER BY ordinal_position",
@@ -119,8 +119,8 @@ class PostgresAdapter(DatabaseAdapter):
                 (table_name,),
             )
             pk_columns = {row[0] for row in pk_cursor.fetchall()}
-        except psycopg.Error:
-            return []
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch columns: {e}") from e
 
         columns = []
         for row in cursor.fetchall():
@@ -131,18 +131,55 @@ class PostgresAdapter(DatabaseAdapter):
                     nullable=row[2] == "YES",
                     primary_key=row[0] in pk_columns,
                     default=row[3],
+                    length=row[4],
                 )
             )
         return columns
+
+    def get_views(self) -> list[ViewInfo]:
+        if not self.is_connected():
+            return []
+
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT table_name FROM information_schema.views "
+                "WHERE table_schema = 'public' ORDER BY table_name"
+            )
+            return [ViewInfo(name=row[0], schema="public") for row in cursor.fetchall()]
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch views: {e}") from e
+
+    def get_indexes(self) -> list[IndexInfo]:
+        if not self.is_connected():
+            return []
+
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT indexname, tablename, indisunique "
+                "FROM pg_indexes i "
+                "JOIN pg_class c ON c.relname = i.indexname "
+                "JOIN pg_index ix ON ix.indexrelid = c.oid "
+                "WHERE i.schemaname = 'public' "
+                "ORDER BY indexname"
+            )
+            return [
+                IndexInfo(name=row[0], table_name=row[1], unique=bool(row[2]), schema="public")
+                for row in cursor.fetchall()
+            ]
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch indexes: {e}") from e
 
     def get_databases(self) -> list[str]:
         if not self.is_connected():
             return []
 
-        cursor = self._conn.execute(  # type: ignore[union-attr]
-            "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
-        )
-        return [row[0] for row in cursor.fetchall()]
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
+            )
+            return [row[0] for row in cursor.fetchall()]
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch databases: {e}") from e
 
     def cancel(self) -> None:
         if self._conn and not self._conn.closed:
