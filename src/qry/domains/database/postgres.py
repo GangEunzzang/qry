@@ -93,8 +93,8 @@ class PostgresAdapter(DatabaseAdapter):
                 "WHERE table_schema = 'public' ORDER BY table_name"
             )
             return [TableInfo(name=row[0], schema="public") for row in cursor.fetchall()]
-        except psycopg.Error:
-            return []
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch tables: {e}") from e
 
     def get_columns(self, table_name: str) -> list[ColumnInfo]:
         if not self.is_connected():
@@ -119,8 +119,8 @@ class PostgresAdapter(DatabaseAdapter):
                 (table_name,),
             )
             pk_columns = {row[0] for row in pk_cursor.fetchall()}
-        except psycopg.Error:
-            return []
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch columns: {e}") from e
 
         columns = []
         for row in cursor.fetchall():
@@ -174,10 +174,13 @@ class PostgresAdapter(DatabaseAdapter):
         if not self.is_connected():
             return []
 
-        cursor = self._conn.execute(  # type: ignore[union-attr]
-            "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
-        )
-        return [row[0] for row in cursor.fetchall()]
+        try:
+            cursor = self._conn.execute(  # type: ignore[union-attr]
+                "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
+            )
+            return [row[0] for row in cursor.fetchall()]
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch databases: {e}") from e
 
     def cancel(self) -> None:
         if self._conn and not self._conn.closed:

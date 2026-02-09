@@ -5,6 +5,7 @@ from textual.message import Message
 from textual.widgets import Static, Tree
 
 from qry.domains.database.base import DatabaseAdapter
+from qry.shared.exceptions import DatabaseError
 from qry.shared.types import TableInfo
 
 
@@ -68,22 +69,27 @@ class DatabaseSidebar(Static):
         self._tree.clear()
         self._columns_loaded.clear()
 
+        try:
+            tables = self._adapter.get_tables()
+            views = self._adapter.get_views()
+            indexes = self._adapter.get_indexes()
+        except DatabaseError as e:
+            self._tree.root.add_leaf(f"⚠ {e}")
+            return
+
         # Tables
-        tables = self._adapter.get_tables()
         tables_node = self._tree.root.add(f"Tables ({len(tables)})", expand=True)
         for table in tables:
             table_node = tables_node.add(table.name, data=table, expand=False)
             table_node.allow_expand = True
 
         # Views
-        views = self._adapter.get_views()
         if views:
             views_node = self._tree.root.add(f"Views ({len(views)})", expand=False)
             for view in views:
                 views_node.add_leaf(view.name, data=view)
 
         # Indexes
-        indexes = self._adapter.get_indexes()
         if indexes:
             indexes_node = self._tree.root.add(f"Indexes ({len(indexes)})", expand=False)
             for idx in indexes:
@@ -102,8 +108,13 @@ class DatabaseSidebar(Static):
         if table_name in self._columns_loaded:
             return
 
+        try:
+            columns = self._adapter.get_columns(table_name)
+        except DatabaseError as e:
+            node.add_leaf(f"⚠ {e}")
+            return
+
         self._columns_loaded.add(table_name)
-        columns = self._adapter.get_columns(table_name)
         for col in columns:
             prefix = "🔑 " if col.primary_key else ""
             type_str = col.data_type

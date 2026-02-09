@@ -72,40 +72,46 @@ class SQLiteAdapter(DatabaseAdapter):
         if not self._conn:
             return []
 
-        cursor = self._conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-        )
-        return [TableInfo(name=row[0]) for row in cursor.fetchall()]
+        try:
+            cursor = self._conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+            )
+            return [TableInfo(name=row[0]) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            raise DatabaseError(f"Failed to fetch tables: {e}") from e
 
     def get_columns(self, table_name: str) -> list[ColumnInfo]:
         if not self._conn:
             return []
 
-        safe_name = table_name.replace('"', '""')
-        cursor = self._conn.execute(f'PRAGMA table_info("{safe_name}")')
-        columns = []
-        for row in cursor.fetchall():
-            raw_type = row[2] or ""
-            data_type, length = self._parse_type_length(raw_type)
-            columns.append(
-                ColumnInfo(
-                    name=row[1],
-                    data_type=data_type,
-                    nullable=not row[3],
-                    primary_key=bool(row[5]),
-                    default=row[4],
-                    length=length,
+        try:
+            safe_name = table_name.replace('"', '""')
+            cursor = self._conn.execute(f'PRAGMA table_info("{safe_name}")')
+            columns = []
+            for row in cursor.fetchall():
+                raw_type = row[2] or ""
+                data_type, length = self._parse_type_length(raw_type)
+                columns.append(
+                    ColumnInfo(
+                        name=row[1],
+                        data_type=data_type,
+                        nullable=not row[3],
+                        primary_key=bool(row[5]),
+                        default=row[4],
+                        length=length,
+                    )
                 )
-            )
-        return columns
+            return columns
+        except sqlite3.Error as e:
+            raise DatabaseError(f"Failed to fetch columns: {e}") from e
 
     @staticmethod
     def _parse_type_length(raw_type: str) -> tuple[str, int | None]:
         """Parse type and length from SQLite type string like 'VARCHAR(255)'."""
-        match = re.match(r"(\w+)\((\d+)\)", raw_type)
+        match = re.match(r"^\s*([A-Za-z ]+?)\s*\(\s*(\d+)\s*\)", raw_type)
         if match:
-            return match.group(1), int(match.group(2))
-        return raw_type, None
+            return match.group(1).strip(), int(match.group(2))
+        return raw_type.strip(), None
 
     def get_views(self) -> list[ViewInfo]:
         if not self._conn:
@@ -146,8 +152,11 @@ class SQLiteAdapter(DatabaseAdapter):
         if not self._conn:
             return []
 
-        cursor = self._conn.execute("PRAGMA database_list")
-        return [row[1] for row in cursor.fetchall()]
+        try:
+            cursor = self._conn.execute("PRAGMA database_list")
+            return [row[1] for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            raise DatabaseError(f"Failed to fetch databases: {e}") from e
 
     def cancel(self) -> None:
         if self._conn:

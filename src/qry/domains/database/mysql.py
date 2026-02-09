@@ -95,8 +95,8 @@ class MySQLAdapter(DatabaseAdapter):
                     "WHERE table_schema = DATABASE() ORDER BY table_name"
                 )
                 return [TableInfo(name=row[0]) for row in cursor.fetchall()]
-        except pymysql.Error:
-            return []
+        except pymysql.Error as e:
+            raise DatabaseError(f"Failed to fetch tables: {e}") from e
 
     def get_columns(self, table_name: str) -> list[ColumnInfo]:
         if not self.is_connected():
@@ -125,8 +125,8 @@ class MySQLAdapter(DatabaseAdapter):
                         )
                     )
                 return columns
-        except pymysql.Error:
-            return []
+        except pymysql.Error as e:
+            raise DatabaseError(f"Failed to fetch columns: {e}") from e
 
     def get_views(self) -> list[ViewInfo]:
         if not self.is_connected():
@@ -169,8 +169,8 @@ class MySQLAdapter(DatabaseAdapter):
             with self._conn.cursor() as cursor:  # type: ignore[union-attr]
                 cursor.execute("SHOW DATABASES")
                 return [row[0] for row in cursor.fetchall()]
-        except pymysql.Error:
-            return []
+        except pymysql.Error as e:
+            raise DatabaseError(f"Failed to fetch databases: {e}") from e
 
     def cancel(self) -> None:
         if self._conn and self._conn.open:
