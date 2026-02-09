@@ -17,6 +17,7 @@ class ColumnInfo:
     nullable: bool = True
     primary_key: bool = False
     default: str | None = None
+    length: int | None = None
 
 
 @dataclass(frozen=True)

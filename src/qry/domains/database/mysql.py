@@ -12,7 +12,6 @@ from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
 
 
 class MySQLAdapter(DatabaseAdapter):
-
     def __init__(
         self,
         host: str = "localhost",
@@ -106,7 +105,8 @@ class MySQLAdapter(DatabaseAdapter):
         try:
             with self._conn.cursor() as cursor:  # type: ignore[union-attr]
                 cursor.execute(
-                    "SELECT column_name, data_type, is_nullable, column_key, column_default "
+                    "SELECT column_name, data_type, is_nullable, column_key, "
+                    "column_default, character_maximum_length "
                     "FROM information_schema.columns "
                     "WHERE table_schema = DATABASE() AND table_name = %s "
                     "ORDER BY ordinal_position",
@@ -121,6 +121,7 @@ class MySQLAdapter(DatabaseAdapter):
                             nullable=row[2] == "YES",
                             primary_key=row[3] == "PRI",
                             default=row[4],
+                            length=row[5],
                         )
                     )
                 return columns
@@ -138,8 +139,8 @@ class MySQLAdapter(DatabaseAdapter):
                     "WHERE table_schema = DATABASE() ORDER BY table_name"
                 )
                 return [ViewInfo(name=row[0]) for row in cursor.fetchall()]
-        except pymysql.Error:
-            return []
+        except pymysql.Error as e:
+            raise DatabaseError(f"Failed to fetch views: {e}") from e
 
     def get_indexes(self) -> list[IndexInfo]:
         if not self.is_connected():
@@ -157,8 +158,8 @@ class MySQLAdapter(DatabaseAdapter):
                     IndexInfo(name=row[0], table_name=row[1], unique=not row[2])
                     for row in cursor.fetchall()
                 ]
-        except pymysql.Error:
-            return []
+        except pymysql.Error as e:
+            raise DatabaseError(f"Failed to fetch indexes: {e}") from e
 
     def get_databases(self) -> list[str]:
         if not self.is_connected():

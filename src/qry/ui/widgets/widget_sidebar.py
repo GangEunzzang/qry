@@ -106,7 +106,10 @@ class DatabaseSidebar(Static):
         columns = self._adapter.get_columns(table_name)
         for col in columns:
             prefix = "🔑 " if col.primary_key else ""
-            label = f"{prefix}{col.name} ({col.data_type})"
+            type_str = col.data_type
+            if col.length is not None:
+                type_str = f"{col.data_type}({col.length})"
+            label = f"{prefix}{col.name} ({type_str})"
             node.add_leaf(label)
 
     def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:

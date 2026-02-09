@@ -11,7 +11,6 @@ from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
 
 
 class PostgresAdapter(DatabaseAdapter):
-
     def __init__(
         self,
         host: str = "localhost",
@@ -103,7 +102,8 @@ class PostgresAdapter(DatabaseAdapter):
 
         try:
             cursor = self._conn.execute(  # type: ignore[union-attr]
-                "SELECT column_name, data_type, is_nullable, column_default "
+                "SELECT column_name, data_type, is_nullable, column_default, "
+                "character_maximum_length "
                 "FROM information_schema.columns "
                 "WHERE table_schema = 'public' AND table_name = %s "
                 "ORDER BY ordinal_position",
@@ -131,6 +131,7 @@ class PostgresAdapter(DatabaseAdapter):
                     nullable=row[2] == "YES",
                     primary_key=row[0] in pk_columns,
                     default=row[3],
+                    length=row[4],
                 )
             )
         return columns
@@ -145,8 +146,8 @@ class PostgresAdapter(DatabaseAdapter):
                 "WHERE table_schema = 'public' ORDER BY table_name"
             )
             return [ViewInfo(name=row[0], schema="public") for row in cursor.fetchall()]
-        except psycopg.Error:
-            return []
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch views: {e}") from e
 
     def get_indexes(self) -> list[IndexInfo]:
         if not self.is_connected():
@@ -166,8 +167,8 @@ class PostgresAdapter(DatabaseAdapter):
                 IndexInfo(name=row[0], table_name=row[1], unique=not row[2], schema="public")
                 for row in cursor.fetchall()
             ]
-        except psycopg.Error:
-            return []
+        except psycopg.Error as e:
+            raise DatabaseError(f"Failed to fetch indexes: {e}") from e
 
     def get_databases(self) -> list[str]:
         if not self.is_connected():
