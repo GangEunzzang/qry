@@ -1,0 +1,1 @@
+E:/project/internal/qry/CLAUDE.md
