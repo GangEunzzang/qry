@@ -12,6 +12,7 @@ from textual.widgets import Button, Input, Label, RadioButton, RadioSet
 from qry.domains.export.base import Exporter
 from qry.domains.export.csv import CsvExporter
 from qry.domains.export.json import JsonExporter
+from qry.domains.export.markdown import MarkdownExporter
 from qry.shared.models import QueryResult
 
 
@@ -62,6 +63,7 @@ class ExportScreen(ModalScreen[str | None]):
     _EXPORTERS: ClassVar[dict[str, type[Exporter]]] = {
         "csv": CsvExporter,
         "json": JsonExporter,
+        "md": MarkdownExporter,
     }
 
     def __init__(self, result: QueryResult) -> None:
@@ -78,22 +80,30 @@ class ExportScreen(ModalScreen[str | None]):
             with RadioSet(id="format-group"):
                 yield RadioButton("CSV", value=True, id="fmt-csv")
                 yield RadioButton("JSON", id="fmt-json")
+                yield RadioButton("Markdown", id="fmt-md")
             yield Input(value=default_path, placeholder="File path", id="file-path")
             with Horizontal(id="button-row"):
                 yield Button("Cancel", variant="default", id="btn-cancel")
                 yield Button("Export", variant="primary", id="btn-export")
 
+    _FORMAT_MAP: ClassVar[dict[str, str]] = {
+        "fmt-csv": "csv",
+        "fmt-json": "json",
+        "fmt-md": "md",
+    }
+
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         pressed = event.radio_set.pressed_button
-        fmt = "json" if pressed and pressed.id == "fmt-json" else "csv"
+        if not pressed:
+            return
+        fmt = self._FORMAT_MAP.get(pressed.id or "", "csv")
         self._format = fmt
 
         path_input = self.query_one("#file-path", Input)
-        current = path_input.value
-        old_ext = ".csv" if fmt == "json" else ".json"
-        new_ext = f".{fmt}"
-        if current.endswith(old_ext):
-            path_input.value = current[: -len(old_ext)] + new_ext
+        current_path = Path(path_input.value)
+        known_exts = {".csv", ".json", ".md"}
+        if current_path.suffix in known_exts:
+            path_input.value = str(current_path.with_suffix(f".{fmt}"))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
