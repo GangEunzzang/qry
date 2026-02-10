@@ -6,6 +6,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
 
 from qry.context import AppContext
+from qry.shared.models import QueryResult
 from qry.ui.screens.screen_export import ExportScreen
 from qry.ui.screens.screen_history import HistoryScreen
 from qry.ui.screens.screen_snippet import SnippetScreen
@@ -80,9 +81,13 @@ class MainScreen(Widget):
     def _update_statusbar(self) -> None:
         statusbar = self.query_one("#statusbar", StatusBar)
         if self._ctx.current_connection:
-            statusbar.set_connection(self._ctx.current_connection.name)
+            statusbar.set_connection_info(self._ctx.current_connection)
         else:
             statusbar.clear_connection()
+
+    def _update_query_result(self, result: QueryResult) -> None:
+        statusbar = self.query_one("#statusbar", StatusBar)
+        statusbar.set_query_result(result.row_count, result.execution_time_ms)
 
     def on_sql_editor_execute_requested(
         self,
@@ -97,12 +102,14 @@ class MainScreen(Widget):
 
         if len(results) == 1:
             results_table.set_result(results[0])
+            self._update_query_result(results[0])
             if results[0].error:
                 editor = self.query_one("#editor", SqlEditor)
                 editor.show_error(results[0].error, results[0].error_position)
         else:
             results_table.set_results(results)
             last = results[-1]
+            self._update_query_result(last)
             if last.error:
                 editor = self.query_one("#editor", SqlEditor)
                 editor.show_error(last.error, last.error_position)
