@@ -7,6 +7,7 @@ import pytest
 
 from qry.domains.export.csv import CsvExporter
 from qry.domains.export.json import JsonExporter
+from qry.domains.export.markdown import MarkdownExporter
 from qry.domains.query.models import QueryResult
 
 
@@ -139,3 +140,119 @@ class TestJsonExporter:
         # Should not raise, datetime should be converted to string
         data = json.loads(output)
         assert "2024" in data[0]["created_at"]
+
+
+class TestMarkdownExporter:
+    @pytest.fixture
+    def exporter(self) -> MarkdownExporter:
+        return MarkdownExporter()
+
+    @pytest.fixture
+    def sample_result(self) -> QueryResult:
+        return QueryResult(
+            columns=["name", "email", "age"],
+            rows=[
+                ("Alice", "alice@example.com", 30),
+                ("Bob", "bob@example.com", 25),
+            ],
+            row_count=2,
+        )
+
+    def test_export_string(
+        self, exporter: MarkdownExporter, sample_result: QueryResult
+    ):
+        output = exporter.export_string(sample_result)
+        lines = output.strip().split("\n")
+
+        assert len(lines) == 4  # header + separator + 2 data rows
+        assert "| name" in lines[0]
+        assert "| email" in lines[0]
+        assert "| age" in lines[0]
+        assert lines[1].startswith("|")
+        assert "---" in lines[1]
+        assert "Alice" in lines[2]
+        assert "Bob" in lines[3]
+
+    def test_export_to_file(
+        self,
+        exporter: MarkdownExporter,
+        sample_result: QueryResult,
+        tmp_path: Path,
+    ):
+        output_path = tmp_path / "output.md"
+
+        exporter.export(sample_result, output_path)
+
+        assert output_path.exists()
+        content = output_path.read_text()
+        assert "Alice" in content
+        assert "---" in content
+
+    def test_export_empty_result(self, exporter: MarkdownExporter):
+        result = QueryResult(columns=["id"], rows=[], row_count=0)
+
+        output = exporter.export_string(result)
+        lines = output.strip().split("\n")
+
+        # Header + separator, no data rows
+        assert len(lines) == 2
+        assert "| id" in lines[0]
+
+    def test_export_empty_columns(self, exporter: MarkdownExporter):
+        result = QueryResult(columns=[], rows=[], row_count=0)
+
+        output = exporter.export_string(result)
+
+        assert output == ""
+
+    def test_null_handling(self, exporter: MarkdownExporter):
+        result = QueryResult(
+            columns=["id", "name"],
+            rows=[(1, None), (2, "Bob")],
+            row_count=2,
+        )
+
+        output = exporter.export_string(result)
+
+        assert "NULL" in output
+        assert "Bob" in output
+
+    def test_null_custom_display(self):
+        exporter = MarkdownExporter(null_display="(empty)")
+        result = QueryResult(
+            columns=["id", "name"],
+            rows=[(1, None)],
+            row_count=1,
+        )
+
+        output = exporter.export_string(result)
+
+        assert "(empty)" in output
+
+    def test_column_width_auto_adjust(self, exporter: MarkdownExporter):
+        result = QueryResult(
+            columns=["x", "long_column_name"],
+            rows=[("short", "v")],
+            row_count=1,
+        )
+
+        output = exporter.export_string(result)
+        lines = output.strip().split("\n")
+
+        # Header and separator cells should have matching widths
+        header_parts = lines[0].split("|")
+        sep_parts = lines[1].split("|")
+        for h, s in zip(header_parts[1:-1], sep_parts[1:-1], strict=True):
+            assert len(h) == len(s)
+
+    def test_special_chars_pipe_escape(self, exporter: MarkdownExporter):
+        result = QueryResult(
+            columns=["data"],
+            rows=[("val|ue",)],
+            row_count=1,
+        )
+
+        output = exporter.export_string(result)
+
+        # Pipe inside cell should be escaped
+        assert "val\\|ue" in output
