@@ -101,11 +101,10 @@ class ExportScreen(ModalScreen[str | None]):
         self._format = fmt
 
         path_input = self.query_one("#file-path", Input)
-        current = path_input.value
-        old_ext = f".{old_fmt}"
-        new_ext = f".{fmt}"
-        if current.endswith(old_ext):
-            path_input.value = current[: -len(old_ext)] + new_ext
+        current_path = Path(path_input.value)
+        known_exts = {".csv", ".json", ".md"}
+        if current_path.suffix in known_exts:
+            path_input.value = str(current_path.with_suffix(f".{fmt}"))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":

@@ -63,4 +63,4 @@ class MarkdownExporter(Exporter):
 
     def _escape(self, text: str) -> str:
         """Escape pipe characters in markdown table cells."""
-        return text.replace("|", "\\|")
+        return text.replace("|", "\\|").replace("\n", " ").replace("\r", "")
