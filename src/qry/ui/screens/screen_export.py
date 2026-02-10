@@ -97,7 +97,6 @@ class ExportScreen(ModalScreen[str | None]):
         if not pressed:
             return
         fmt = self._FORMAT_MAP.get(pressed.id or "", "csv")
-        old_fmt = self._format
         self._format = fmt
 
         path_input = self.query_one("#file-path", Input)
