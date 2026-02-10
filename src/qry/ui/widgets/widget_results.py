@@ -6,7 +6,7 @@ from enum import Enum
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
-from textual.widgets import DataTable, Static
+from textual.widgets import DataTable, Input, Static
 
 from qry.domains.query.models import QueryResult
 
@@ -31,7 +31,18 @@ class ResultsTable(Static):
     }
 
     ResultsTable DataTable {
-        height: 100%;
+        height: 1fr;
+    }
+
+    ResultsTable #search-bar {
+        display: none;
+        dock: bottom;
+        height: auto;
+        max-height: 1;
+    }
+
+    ResultsTable #search-bar.visible {
+        display: block;
     }
     """
 
@@ -40,6 +51,7 @@ class ResultsTable(Static):
         Binding("ctrl+c", "copy", "Copy"),
         Binding("enter", "copy_cell", "Copy Cell"),
         Binding("s", "toggle_sort", "Sort"),
+        Binding("slash", "start_search", "Search", show=False),
     ]
 
     class ExportRequested(Message):
@@ -53,9 +65,13 @@ class ResultsTable(Static):
         self._table: DataTable | None = None
         self._sort_column: int | None = None
         self._sort_direction: SortDirection = SortDirection.NONE
+        self._search_active: bool = False
+        self._search_query: str = ""
+        self._all_rows: list[tuple] = []
 
     def compose(self) -> ComposeResult:
         yield DataTable(id="results-table")
+        yield Input(id="search-bar", placeholder="Search...")
 
     def on_mount(self) -> None:
         self._table = self.query_one("#results-table", DataTable)
@@ -66,9 +82,20 @@ class ResultsTable(Static):
         self._result = result
         self._sort_column = None
         self._sort_direction = SortDirection.NONE
+        self._search_active = False
+        self._search_query = ""
+        self._all_rows = list(result.rows) if result.rows else []
 
         if not self._table:
             return
+
+        # Hide search bar on new result
+        try:
+            search_bar = self.query_one("#search-bar", Input)
+            search_bar.remove_class("visible")
+            search_bar.value = ""
+        except Exception:
+            pass
 
         self._render_table()
 
@@ -95,10 +122,44 @@ class ResultsTable(Static):
             self._table.add_column(label)
 
         rows = self._sorted_rows()
+        if self._search_active and self._search_query:
+            rows = self._filter_rows(rows)
+
         for row in rows:
             self._table.add_row(*[str(v) if v is not None else "NULL" for v in row])
 
-        self.border_title = f"Results - {result.row_count} rows ({result.execution_time_ms:.1f}ms)"
+        self._update_border_title(rows)
+
+    def _update_border_title(self, displayed_rows: list[tuple]) -> None:
+        """Update border title based on current state."""
+        if not self._result:
+            return
+
+        total = len(self._all_rows)
+        shown = len(displayed_rows)
+
+        if self._search_active and self._search_query:
+            self.border_title = (
+                f"Results - {shown}/{total} rows (filtered)"
+            )
+        else:
+            self.border_title = (
+                f"Results - {self._result.row_count} rows"
+                f" ({self._result.execution_time_ms:.1f}ms)"
+            )
+
+    def _filter_rows(self, rows: list[tuple]) -> list[tuple]:
+        """Filter rows by search query (case-insensitive, any column match)."""
+        if not self._search_query:
+            return rows
+        query = self._search_query.lower()
+        return [
+            row for row in rows
+            if any(
+                query in (str(v).lower() if v is not None else "null")
+                for v in row
+            )
+        ]
 
     def _column_label(self, name: str, index: int) -> str:
         """Return column label with sort indicator if applicable."""
@@ -113,7 +174,7 @@ class ResultsTable(Static):
         """Return rows sorted by current sort state."""
         if not self._result:
             return []
-        rows = list(self._result.rows)
+        rows = list(self._all_rows)
         if (
             self._sort_column is None
             or self._sort_direction == SortDirection.NONE
@@ -183,7 +244,6 @@ class ResultsTable(Static):
             return
 
         if self._sort_column == col_idx:
-            # Cycle direction on same column
             if self._sort_direction == SortDirection.NONE:
                 self._sort_direction = SortDirection.ASC
             elif self._sort_direction == SortDirection.ASC:
@@ -192,11 +252,59 @@ class ResultsTable(Static):
                 self._sort_direction = SortDirection.NONE
                 self._sort_column = None
         else:
-            # New column: start with ASC
             self._sort_column = col_idx
             self._sort_direction = SortDirection.ASC
 
         self._render_table()
+
+    # -- Search --
+
+    def action_start_search(self) -> None:
+        """Activate search mode and show search bar."""
+        if not self._result or not self._result.columns:
+            return
+        self._search_active = True
+        try:
+            search_bar = self.query_one("#search-bar", Input)
+            search_bar.add_class("visible")
+            search_bar.value = self._search_query
+            search_bar.focus()
+        except Exception:
+            pass
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """Filter results as user types in search bar."""
+        if event.input.id != "search-bar":
+            return
+        self._search_query = event.value
+        self._render_table()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Close search bar on Enter, keep filtered state."""
+        if event.input.id != "search-bar":
+            return
+        self._close_search(keep_filter=True)
+
+    def key_escape(self) -> None:
+        """Close search bar on Escape, restore full results."""
+        if self._search_active:
+            self._close_search(keep_filter=False)
+
+    def _close_search(self, *, keep_filter: bool) -> None:
+        """Close search bar and optionally restore original results."""
+        try:
+            search_bar = self.query_one("#search-bar", Input)
+            search_bar.remove_class("visible")
+        except Exception:
+            pass
+
+        if not keep_filter:
+            self._search_query = ""
+        self._search_active = False
+        self._render_table()
+
+        if self._table:
+            self._table.focus()
 
     def _get_row_as_json(self, row_index: int) -> str | None:
         """Get a row as a JSON string."""

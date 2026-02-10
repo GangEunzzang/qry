@@ -1,4 +1,4 @@
-"""Tests for ResultsTable clipboard copy and column sorting."""
+"""Tests for ResultsTable clipboard copy, column sorting, and search."""
 
 import json
 from unittest.mock import MagicMock
@@ -26,6 +26,12 @@ def sample_result() -> QueryResult:
 def widget() -> ResultsTable:
     table = ResultsTable()
     return table
+
+
+def _init_widget(widget: ResultsTable, result: QueryResult) -> None:
+    """Set result and _all_rows on widget without requiring mounted DataTable."""
+    widget._result = result
+    widget._all_rows = list(result.rows) if result.rows else []
 
 
 class TestGetRowAsJson:
@@ -71,12 +77,12 @@ class TestGetRowAsJson:
     def test_non_ascii_value(self, widget: ResultsTable) -> None:
         widget._result = QueryResult(
             columns=["name"],
-            rows=[("한글 테스트",)],
+            rows=[("\ud55c\uae00 \ud14c\uc2a4\ud2b8",)],
             row_count=1,
         )
         result = widget._get_row_as_json(0)
         assert result is not None
-        assert "한글 테스트" in result
+        assert "\ud55c\uae00 \ud14c\uc2a4\ud2b8" in result
 
 
 class TestGetCellValue:
@@ -154,14 +160,14 @@ class TestSortedRows:
     def test_no_sort(
         self, widget: ResultsTable, sample_result: QueryResult
     ) -> None:
-        widget._result = sample_result
+        _init_widget(widget, sample_result)
         rows = widget._sorted_rows()
         assert rows == list(sample_result.rows)
 
     def test_sort_asc_by_name(
         self, widget: ResultsTable, sample_result: QueryResult
     ) -> None:
-        widget._result = sample_result
+        _init_widget(widget, sample_result)
         widget._sort_column = 1
         widget._sort_direction = SortDirection.ASC
         rows = widget._sorted_rows()
@@ -171,7 +177,7 @@ class TestSortedRows:
     def test_sort_desc_by_name(
         self, widget: ResultsTable, sample_result: QueryResult
     ) -> None:
-        widget._result = sample_result
+        _init_widget(widget, sample_result)
         widget._sort_column = 1
         widget._sort_direction = SortDirection.DESC
         rows = widget._sorted_rows()
@@ -181,7 +187,7 @@ class TestSortedRows:
     def test_sort_asc_by_id(
         self, widget: ResultsTable, sample_result: QueryResult
     ) -> None:
-        widget._result = sample_result
+        _init_widget(widget, sample_result)
         widget._sort_column = 0
         widget._sort_direction = SortDirection.ASC
         rows = widget._sorted_rows()
@@ -191,7 +197,7 @@ class TestSortedRows:
     def test_sort_desc_by_id(
         self, widget: ResultsTable, sample_result: QueryResult
     ) -> None:
-        widget._result = sample_result
+        _init_widget(widget, sample_result)
         widget._sort_column = 0
         widget._sort_direction = SortDirection.DESC
         rows = widget._sorted_rows()
@@ -199,11 +205,12 @@ class TestSortedRows:
         assert rows[1][0] == 1
 
     def test_none_values_sorted_last_asc(self, widget: ResultsTable) -> None:
-        widget._result = QueryResult(
+        result = QueryResult(
             columns=["val"],
             rows=[(None,), (1,), (3,), (None,), (2,)],
             row_count=5,
         )
+        _init_widget(widget, result)
         widget._sort_column = 0
         widget._sort_direction = SortDirection.ASC
         rows = widget._sorted_rows()
@@ -214,19 +221,15 @@ class TestSortedRows:
         assert rows[4][0] is None
 
     def test_none_values_sorted_first_desc(self, widget: ResultsTable) -> None:
-        widget._result = QueryResult(
+        result = QueryResult(
             columns=["val"],
             rows=[(None,), (1,), (3,), (2,)],
             row_count=4,
         )
+        _init_widget(widget, result)
         widget._sort_column = 0
         widget._sort_direction = SortDirection.DESC
         rows = widget._sorted_rows()
-        # DESC reverses everything, so (1, "") for None becomes first after reverse
-        # but the sort_key puts None with (1, ""), non-None with (0, val)
-        # With reverse=True: (1, "") > (0, 3) > (0, 2) > (0, 1)
-        # Actually reverse makes (1, "") come first, then (0, 3), (0, 2), (0, 1)
-        # So None values come first when DESC due to reverse
         assert rows[0][0] is None
         assert rows[1][0] == 3
         assert rows[2][0] == 2
@@ -235,7 +238,7 @@ class TestSortedRows:
     def test_does_not_mutate_original_rows(
         self, widget: ResultsTable, sample_result: QueryResult
     ) -> None:
-        widget._result = sample_result
+        _init_widget(widget, sample_result)
         widget._sort_column = 1
         widget._sort_direction = SortDirection.DESC
         original_rows = list(sample_result.rows)
@@ -244,11 +247,12 @@ class TestSortedRows:
 
     def test_mixed_types_fallback_to_string_sort(self, widget: ResultsTable) -> None:
         """Mixed types fall back to string comparison."""
-        widget._result = QueryResult(
+        result = QueryResult(
             columns=["val"],
             rows=[(1,), ("b",), (2,), ("a",)],
             row_count=4,
         )
+        _init_widget(widget, result)
         widget._sort_column = 0
         widget._sort_direction = SortDirection.ASC
         rows = widget._sorted_rows()
@@ -260,6 +264,7 @@ class TestToggleSort:
     def sortable_widget(self, sample_result: QueryResult) -> ResultsTable:
         w = ResultsTable()
         w._result = sample_result
+        w._all_rows = list(sample_result.rows)
         w._table = MagicMock()
         w._table.cursor_column = 0
         w._render_table = MagicMock()  # type: ignore[method-assign]
@@ -323,3 +328,199 @@ class TestSetResultResetsSortState:
         widget.set_result(sample_result)
         assert widget._sort_column is None
         assert widget._sort_direction == SortDirection.NONE
+
+    def test_set_result_resets_search(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        widget._search_active = True
+        widget._search_query = "alice"
+        widget.set_result(sample_result)
+        assert widget._search_active is False
+        assert widget._search_query == ""
+
+    def test_set_result_stores_all_rows(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        widget.set_result(sample_result)
+        assert widget._all_rows == list(sample_result.rows)
+
+
+class TestFilterRows:
+    def test_no_query_returns_all(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        rows = list(sample_result.rows)
+        filtered = widget._filter_rows(rows)
+        assert filtered == rows
+
+    def test_filter_by_name(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._search_query = "alice"
+        rows = list(sample_result.rows)
+        filtered = widget._filter_rows(rows)
+        assert len(filtered) == 1
+        assert filtered[0][1] == "Alice"
+
+    def test_filter_case_insensitive(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._search_query = "ALICE"
+        rows = list(sample_result.rows)
+        filtered = widget._filter_rows(rows)
+        assert len(filtered) == 1
+        assert filtered[0][1] == "Alice"
+
+    def test_filter_matches_any_column(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._search_query = "example.com"
+        rows = list(sample_result.rows)
+        filtered = widget._filter_rows(rows)
+        assert len(filtered) == 1
+        assert filtered[0][1] == "Alice"
+
+    def test_filter_no_match(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._search_query = "nonexistent"
+        rows = list(sample_result.rows)
+        filtered = widget._filter_rows(rows)
+        assert len(filtered) == 0
+
+    def test_filter_matches_numeric_value(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._search_query = "1"
+        rows = list(sample_result.rows)
+        filtered = widget._filter_rows(rows)
+        assert len(filtered) == 1
+        assert filtered[0][0] == 1
+
+    def test_filter_matches_null_value(self, widget: ResultsTable) -> None:
+        result = QueryResult(
+            columns=["name", "value"],
+            rows=[("a", None), ("b", "something")],
+            row_count=2,
+        )
+        _init_widget(widget, result)
+        widget._search_query = "null"
+        filtered = widget._filter_rows(list(result.rows))
+        assert len(filtered) == 1
+        assert filtered[0][0] == "a"
+
+    def test_filter_empty_query_returns_all(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._search_query = ""
+        rows = list(sample_result.rows)
+        filtered = widget._filter_rows(rows)
+        assert filtered == rows
+
+    def test_filter_partial_match(self, widget: ResultsTable) -> None:
+        result = QueryResult(
+            columns=["name"],
+            rows=[("foobar",), ("bazqux",), ("fooqux",)],
+            row_count=3,
+        )
+        _init_widget(widget, result)
+        widget._search_query = "foo"
+        filtered = widget._filter_rows(list(result.rows))
+        assert len(filtered) == 2
+        assert filtered[0][0] == "foobar"
+        assert filtered[1][0] == "fooqux"
+
+
+class TestSearchState:
+    def test_initial_search_state(self, widget: ResultsTable) -> None:
+        assert widget._search_active is False
+        assert widget._search_query == ""
+        assert widget._all_rows == []
+
+    def test_close_search_with_keep_filter(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._table = MagicMock()
+        widget._render_table = MagicMock()  # type: ignore[method-assign]
+        widget._search_active = True
+        widget._search_query = "alice"
+        widget._close_search(keep_filter=True)
+        assert widget._search_active is False
+        assert widget._search_query == "alice"
+
+    def test_close_search_without_keep_filter(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._table = MagicMock()
+        widget._render_table = MagicMock()  # type: ignore[method-assign]
+        widget._search_active = True
+        widget._search_query = "alice"
+        widget._close_search(keep_filter=False)
+        assert widget._search_active is False
+        assert widget._search_query == ""
+
+    def test_start_search_no_result(self, widget: ResultsTable) -> None:
+        widget.action_start_search()
+        assert widget._search_active is False
+
+    def test_start_search_no_columns(self, widget: ResultsTable) -> None:
+        widget._result = QueryResult(row_count=5)
+        widget.action_start_search()
+        assert widget._search_active is False
+
+    def test_start_search_with_result(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget.action_start_search()
+        assert widget._search_active is True
+
+    def test_escape_clears_search(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._table = MagicMock()
+        widget._render_table = MagicMock()  # type: ignore[method-assign]
+        widget._search_active = True
+        widget._search_query = "alice"
+        widget.key_escape()
+        assert widget._search_active is False
+        assert widget._search_query == ""
+
+    def test_escape_noop_when_not_searching(self, widget: ResultsTable) -> None:
+        widget.key_escape()
+        assert widget._search_active is False
+        assert widget._search_query == ""
+
+
+class TestUpdateBorderTitle:
+    def test_normal_title(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        rows = list(sample_result.rows)
+        widget._update_border_title(rows)
+        assert "2 rows" in widget.border_title
+        assert "1.5ms" in widget.border_title
+
+    def test_filtered_title(
+        self, widget: ResultsTable, sample_result: QueryResult
+    ) -> None:
+        _init_widget(widget, sample_result)
+        widget._search_active = True
+        widget._search_query = "alice"
+        filtered = [sample_result.rows[0]]
+        widget._update_border_title(filtered)
+        assert "1/2 rows (filtered)" in widget.border_title
+
+    def test_no_result_noop(self, widget: ResultsTable) -> None:
+        widget._update_border_title([])
