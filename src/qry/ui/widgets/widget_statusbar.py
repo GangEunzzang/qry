@@ -51,6 +51,8 @@ class StatusBar(Static):
             db = config.database or ""
             self._connection_info = f"{icon} {host}{port_str}/{db}"
         self._connection_name = config.name
+        self._row_count = None
+        self._elapsed_ms = None
         self._update_display()
 
     def set_query_result(self, row_count: int, elapsed_ms: float) -> None:

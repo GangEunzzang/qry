@@ -62,12 +62,12 @@ class TestStatusBarConnection:
         config = ConnectionConfig(
             name="local",
             db_type=DatabaseType.SQLITE,
-            path="/tmp/test.db",
+            path="/data/test.db",
         )
         bar.set_connection_info(config)
         content = _get_content(bar)
         assert "\U0001f4e6" in content
-        assert "/tmp/test.db" in content
+        assert "/data/test.db" in content
 
     def test_set_connection_info_sqlite_memory(self):
         bar = StatusBar()
