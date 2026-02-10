@@ -5,6 +5,7 @@ from enum import Enum
 
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.css.query import NoMatches
 from textual.message import Message
 from textual.widgets import DataTable, Input, Static
 
@@ -94,7 +95,7 @@ class ResultsTable(Static):
             search_bar = self.query_one("#search-bar", Input)
             search_bar.remove_class("visible")
             search_bar.value = ""
-        except Exception:
+        except NoMatches:
             pass
 
         self._render_table()
@@ -122,7 +123,7 @@ class ResultsTable(Static):
             self._table.add_column(label)
 
         rows = self._sorted_rows()
-        if self._search_active and self._search_query:
+        if self._search_query:
             rows = self._filter_rows(rows)
 
         for row in rows:
@@ -138,7 +139,7 @@ class ResultsTable(Static):
         total = len(self._all_rows)
         shown = len(displayed_rows)
 
-        if self._search_active and self._search_query:
+        if self._search_query:
             self.border_title = (
                 f"Results - {shown}/{total} rows (filtered)"
             )
@@ -269,7 +270,7 @@ class ResultsTable(Static):
             search_bar.add_class("visible")
             search_bar.value = self._search_query
             search_bar.focus()
-        except Exception:
+        except NoMatches:
             pass
 
     def on_input_changed(self, event: Input.Changed) -> None:
@@ -295,7 +296,7 @@ class ResultsTable(Static):
         try:
             search_bar = self.query_one("#search-bar", Input)
             search_bar.remove_class("visible")
-        except Exception:
+        except NoMatches:
             pass
 
         if not keep_filter:
