@@ -24,6 +24,10 @@ class DatabaseSidebar(Static):
         display: block;
     }
 
+    DatabaseSidebar:focus-within {
+        border: solid $accent;
+    }
+
     DatabaseSidebar Tree {
         height: 100%;
     }
