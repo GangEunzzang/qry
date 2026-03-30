@@ -21,7 +21,7 @@ class SqlEditor(Static):
 
     DEFAULT_CSS = """
     SqlEditor {
-        height: 1fr;
+        height: 2fr;
         border: solid $primary;
         padding: 0 1;
     }

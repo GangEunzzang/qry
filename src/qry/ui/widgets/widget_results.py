@@ -23,7 +23,7 @@ class ResultsTable(Static):
 
     DEFAULT_CSS = """
     ResultsTable {
-        height: 2fr;
+        height: 3fr;
         border: solid $primary;
     }
 
