@@ -25,6 +25,7 @@ class ResultsTable(Static):
     ResultsTable {
         height: 3fr;
         border: solid $primary;
+        padding: 0 1;
     }
 
     ResultsTable:focus-within {
