@@ -61,6 +61,11 @@ class MainScreen(Widget):
         self._update_sidebar()
         self._update_statusbar()
         self._setup_completion()
+        if not self._ctx.is_connected:
+            self.app.notify(
+                "No database connected. Usage: qry <database.db> or qry -c <connection>",
+                title="Welcome to qry",
+            )
 
     def _setup_completion(self) -> None:
         editor = self.query_one("#editor", SqlEditor)

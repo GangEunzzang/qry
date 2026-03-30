@@ -83,7 +83,7 @@ class StatusBar(Static):
         elif self._connection_name:
             parts.append(f"[bold]{self._connection_name}[/bold]")
         else:
-            parts.append("[dim]No connection[/dim]")
+            parts.append("[dim]No connection — run: qry <database>[/dim]")
 
         if self._row_count is not None and self._elapsed_ms is not None:
             parts.append(f"{self._row_count} rows")
