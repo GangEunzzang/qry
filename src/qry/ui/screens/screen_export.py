@@ -34,6 +34,8 @@ class ExportScreen(ModalScreen[str | None]):
     }
 
     #export-dialog Label {
+        text-align: center;
+        text-style: bold;
         margin-bottom: 1;
     }
 
