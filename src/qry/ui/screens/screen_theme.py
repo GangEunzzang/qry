@@ -22,7 +22,7 @@ class ThemeScreen(ModalScreen[str | None]):
         width: 40;
         height: auto;
         max-height: 80%;
-        border: solid $primary;
+        border: thick $accent;
         background: $surface;
         padding: 1 2;
     }
