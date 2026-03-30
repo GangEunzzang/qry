@@ -94,4 +94,4 @@ class StatusBar(Static):
 
         parts.append("[dim]Ctrl+Enter: Run[/dim]")
 
-        self.update(" | ".join(parts))
+        self.update(" \u2502 ".join(parts))
