@@ -78,6 +78,15 @@ class ResultsTable(Static):
         self._table = self.query_one("#results-table", DataTable)
         self._table.cursor_type = "cell"
         self.border_title = "Results"
+        self._show_empty_state()
+
+    def _show_empty_state(self) -> None:
+        """Show a helpful empty state when no results are displayed."""
+        if not self._table:
+            return
+        self._table.clear(columns=True)
+        self._table.add_column("  ")
+        self._table.add_row("  Press Ctrl+Enter to run a query")
 
     def set_result(self, result: QueryResult) -> None:
         self._result = result
