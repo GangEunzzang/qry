@@ -118,9 +118,9 @@ class ResultsTable(Static):
         self._table.clear(columns=True)
 
         if result.error:
-            self._table.add_column("Error")
-            self._table.add_row(result.error)
-            self.border_title = "Results - Error"
+            self._table.add_column("Error Details")
+            self._table.add_row(f"\u2717 {result.error}")
+            self.border_title = "Results \u2014 Error"
             return
 
         if not result.columns:
