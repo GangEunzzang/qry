@@ -8,7 +8,7 @@ from pathlib import Path
 from qry.domains.database.base import DatabaseAdapter
 from qry.shared.exceptions import DatabaseError
 from qry.shared.models import QueryResult
-from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
+from qry.shared.types import ColumnInfo, ForeignKeyInfo, IndexInfo, TableInfo, ViewInfo
 
 
 class SQLiteAdapter(DatabaseAdapter):
@@ -157,6 +157,36 @@ class SQLiteAdapter(DatabaseAdapter):
             return [row[1] for row in cursor.fetchall()]
         except sqlite3.Error as e:
             raise DatabaseError(f"Failed to fetch databases: {e}") from e
+
+    def get_ddl(self, table_name: str) -> str:
+        if not self._conn:
+            return ""
+        try:
+            safe_name = table_name.replace("'", "''")
+            cursor = self._conn.execute(
+                f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{safe_name}'"
+            )
+            row = cursor.fetchone()
+            return row[0] if row else ""
+        except sqlite3.Error:
+            return ""
+
+    def get_foreign_keys(self, table_name: str) -> list[ForeignKeyInfo]:
+        if not self._conn:
+            return []
+        try:
+            safe_name = table_name.replace('"', '""')
+            cursor = self._conn.execute(f'PRAGMA foreign_key_list("{safe_name}")')
+            return [
+                ForeignKeyInfo(
+                    from_column=row[3],
+                    to_table=row[2],
+                    to_column=row[4],
+                )
+                for row in cursor.fetchall()
+            ]
+        except sqlite3.Error:
+            return []
 
     def cancel(self) -> None:
         if self._conn:

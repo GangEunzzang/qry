@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from qry.domains.query.ports import SchemaProvider
-from qry.shared.types import ColumnInfo, IndexInfo, TableInfo, ViewInfo
+from qry.shared.types import ColumnInfo, ForeignKeyInfo, IndexInfo, TableInfo, ViewInfo
 
 if TYPE_CHECKING:
     from qry.shared.models import QueryResult
@@ -49,6 +49,14 @@ class DatabaseAdapter(SchemaProvider, ABC):
         return []
 
     def get_indexes(self) -> list[IndexInfo]:
+        return []
+
+    def get_ddl(self, table_name: str) -> str:
+        """Get the CREATE TABLE DDL for a table. Override in subclasses."""
+        return ""
+
+    def get_foreign_keys(self, table_name: str) -> list[ForeignKeyInfo]:
+        """Get foreign keys for a table. Override in subclasses."""
         return []
 
     def test_connection(self) -> tuple[bool, str]:

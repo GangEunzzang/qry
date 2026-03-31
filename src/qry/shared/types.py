@@ -32,3 +32,10 @@ class IndexInfo:
     table_name: str
     unique: bool = False
     schema: str | None = None
+
+
+@dataclass(frozen=True)
+class ForeignKeyInfo:
+    from_column: str
+    to_table: str
+    to_column: str
