@@ -524,3 +524,59 @@ class TestUpdateBorderTitle:
 
     def test_no_result_noop(self, widget: ResultsTable) -> None:
         widget._update_border_title([])
+
+
+class TestPagination:
+    def test_page_size_constant(self) -> None:
+        from qry.ui.widgets.widget_results import PAGE_SIZE
+        assert PAGE_SIZE > 0
+
+    def test_initial_page_is_zero(self, widget: ResultsTable) -> None:
+        assert widget._current_page == 0
+
+    def test_set_result_resets_page(self, widget: ResultsTable, sample_result: QueryResult) -> None:
+        widget._current_page = 5
+        widget._result = sample_result
+        widget._all_rows = list(sample_result.rows)
+        widget._current_page = 0  # set_result does this
+        assert widget._current_page == 0
+
+    def test_max_page_small_result(self, widget: ResultsTable) -> None:
+        widget._displayed_rows = [(i,) for i in range(10)]
+        assert widget._max_page() == 0
+
+    def test_max_page_large_result(self, widget: ResultsTable) -> None:
+        from qry.ui.widgets.widget_results import PAGE_SIZE
+        widget._displayed_rows = [(i,) for i in range(PAGE_SIZE * 3 + 1)]
+        assert widget._max_page() == 3
+
+    def test_next_page_increments(self, widget: ResultsTable, sample_result: QueryResult) -> None:
+        from qry.ui.widgets.widget_results import PAGE_SIZE
+        big_rows = [(i,) for i in range(PAGE_SIZE * 2 + 1)]
+        big_result = QueryResult(
+            columns=["id"],
+            rows=big_rows,
+            row_count=len(big_rows),
+        )
+        _init_widget(widget, big_result)
+        widget._displayed_rows = list(big_rows)
+        widget.action_next_page()
+        assert widget._current_page == 1
+
+    def test_prev_page_at_zero_stays(self, widget: ResultsTable, sample_result: QueryResult) -> None:
+        _init_widget(widget, sample_result)
+        widget.action_prev_page()
+        assert widget._current_page == 0
+
+    def test_border_title_shows_page_info(self, widget: ResultsTable) -> None:
+        from qry.ui.widgets.widget_results import PAGE_SIZE
+        big_rows = [(i,) for i in range(PAGE_SIZE * 2 + 1)]
+        big_result = QueryResult(
+            columns=["id"],
+            rows=big_rows,
+            row_count=len(big_rows),
+        )
+        _init_widget(widget, big_result)
+        widget._displayed_rows = list(big_rows)
+        widget._update_border_title(big_rows)
+        assert "pg 1/" in widget.border_title

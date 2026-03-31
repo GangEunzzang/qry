@@ -11,6 +11,8 @@ from textual.widgets import DataTable, Input, Static
 
 from qry.domains.query.models import QueryResult
 
+PAGE_SIZE = 500
+
 
 class SortDirection(Enum):
     NONE = "none"
@@ -54,6 +56,8 @@ class ResultsTable(Static):
         Binding("enter", "copy_cell", "Copy Cell"),
         Binding("s", "toggle_sort", "Sort"),
         Binding("slash", "start_search", "Search", show=False),
+        Binding("n", "next_page", "Next Page"),
+        Binding("p", "prev_page", "Prev Page"),
     ]
 
     class ExportRequested(Message):
@@ -71,6 +75,7 @@ class ResultsTable(Static):
         self._search_query: str = ""
         self._all_rows: list[tuple] = []
         self._displayed_rows: list[tuple] = []
+        self._current_page: int = 0
 
     def compose(self) -> ComposeResult:
         yield DataTable(id="results-table")
@@ -97,6 +102,7 @@ class ResultsTable(Static):
         self._search_active = False
         self._search_query = ""
         self._all_rows = list(result.rows) if result.rows else []
+        self._current_page = 0
 
         if not self._table:
             return
@@ -139,7 +145,16 @@ class ResultsTable(Static):
 
         self._displayed_rows = rows
 
-        for row in rows:
+        # Paginate: only render current page in the DataTable
+        total = len(rows)
+        if total > PAGE_SIZE:
+            start = self._current_page * PAGE_SIZE
+            end = min(start + PAGE_SIZE, total)
+            page_rows = rows[start:end]
+        else:
+            page_rows = rows
+
+        for row in page_rows:
             self._table.add_row(*[str(v) if v is not None else "NULL" for v in row])
 
         self._update_border_title(rows)
@@ -152,14 +167,17 @@ class ResultsTable(Static):
         total = len(self._all_rows)
         shown = len(displayed_rows)
 
+        total_pages = max(1, (shown + PAGE_SIZE - 1) // PAGE_SIZE)
+        page_info = f" [pg {self._current_page + 1}/{total_pages}]" if shown > PAGE_SIZE else ""
+
         if self._search_query:
             self.border_title = (
-                f"Results - {shown}/{total} rows (filtered)"
+                f"Results - {shown}/{total} rows (filtered){page_info}"
             )
         else:
             self.border_title = (
                 f"Results - {self._result.row_count} rows"
-                f" ({self._result.execution_time_ms:.1f}ms)"
+                f" ({self._result.execution_time_ms:.1f}ms){page_info}"
             )
 
     def _filter_rows(self, rows: list[tuple]) -> list[tuple]:
@@ -272,6 +290,26 @@ class ResultsTable(Static):
         self._render_table()
 
     # -- Search --
+
+    def _max_page(self) -> int:
+        total = len(self._displayed_rows)
+        if total <= PAGE_SIZE:
+            return 0
+        return (total - 1) // PAGE_SIZE
+
+    def action_next_page(self) -> None:
+        if not self._result or not self._result.columns:
+            return
+        if self._current_page < self._max_page():
+            self._current_page += 1
+            self._render_table()
+
+    def action_prev_page(self) -> None:
+        if not self._result or not self._result.columns:
+            return
+        if self._current_page > 0:
+            self._current_page -= 1
+            self._render_table()
 
     def action_start_search(self) -> None:
         """Activate search mode and show search bar."""
