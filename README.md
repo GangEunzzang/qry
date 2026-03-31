@@ -4,7 +4,7 @@ A fast and beautiful SQL TUI client for developers.
 
 ## Features
 
-- Multi-database support: SQLite (PostgreSQL, MySQL planned)
+- Multi-database support: SQLite, PostgreSQL, MySQL
 - SQL syntax highlighting
 - Query autocompletion
 - Query history with search
@@ -24,10 +24,10 @@ pip install qry
 ### Database Drivers
 
 ```bash
-# PostgreSQL support (planned)
+# PostgreSQL support
 pip install 'qry[postgres]'
 
-# MySQL support (planned)
+# MySQL support
 pip install 'qry[mysql]'
 
 # All databases
