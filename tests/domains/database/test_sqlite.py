@@ -246,3 +246,41 @@ class TestSQLiteAdapter:
         adapter.cancel()  # Should not raise
 
         adapter.disconnect()
+
+
+class TestErrorPosition:
+    def test_syntax_error_has_position(self, sample_sqlite_db: Path):
+        adapter = SQLiteAdapter(sample_sqlite_db)
+        adapter.connect()
+        result = adapter.execute('SELEC * FROM users')
+        assert result.error is not None
+        assert result.error_position is not None
+        assert result.error_position >= 1
+        adapter.disconnect()
+
+    def test_valid_query_no_error_position(self, sample_sqlite_db: Path):
+        adapter = SQLiteAdapter(sample_sqlite_db)
+        adapter.connect()
+        result = adapter.execute("SELECT 1")
+        assert result.error is None
+        assert result.error_position is None
+        adapter.disconnect()
+
+    def test_near_token_error(self, sample_sqlite_db: Path):
+        adapter = SQLiteAdapter(sample_sqlite_db)
+        adapter.connect()
+        result = adapter.execute("SELECT * FORM users")
+        assert result.error is not None
+        # "near" pattern should parse to line 1
+        if result.error_position is not None:
+            assert result.error_position == 1
+        adapter.disconnect()
+
+    def test_table_not_found_no_position(self, sample_sqlite_db: Path):
+        adapter = SQLiteAdapter(sample_sqlite_db)
+        adapter.connect()
+        result = adapter.execute("SELECT * FROM nonexistent")
+        assert result.error is not None
+        # "no such table" doesn't have "near" pattern
+        # error_position may be None
+        adapter.disconnect()

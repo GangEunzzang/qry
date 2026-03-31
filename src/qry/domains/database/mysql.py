@@ -1,6 +1,7 @@
 """MySQL database adapter using PyMySQL."""
 
 import contextlib
+import re
 import time
 
 import pymysql
@@ -79,9 +80,14 @@ class MySQLAdapter(DatabaseAdapter):
                     )
         except pymysql.Error as e:
             execution_time_ms = (time.perf_counter() - start_time) * 1000
+            position = None
+            match = re.search(r"at line (\d+)", str(e))
+            if match:
+                position = int(match.group(1))
             return QueryResult(
                 error=str(e),
                 execution_time_ms=execution_time_ms,
+                error_position=position,
             )
 
     def get_tables(self) -> list[TableInfo]:
