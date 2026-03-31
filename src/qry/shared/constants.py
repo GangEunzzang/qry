@@ -5,7 +5,7 @@ APP_NAME = "qry"
 VERSION = "0.1.0"
 
 # --- Default Settings ---
-DEFAULT_THEME = "textual-dark"
+DEFAULT_THEME = "qry-dark"
 DEFAULT_EDITOR_THEME = "dracula"
 DEFAULT_TAB_SIZE = 2
 DEFAULT_PAGE_SIZE = 100
@@ -83,6 +83,7 @@ CONFIG_SECTION_HISTORY = "history"
 
 # --- Available Themes ---
 AVAILABLE_THEMES: tuple[str, ...] = (
+    "qry-dark",
     "textual-dark",
     "textual-light",
     "dracula",

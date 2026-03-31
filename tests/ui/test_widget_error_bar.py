@@ -22,12 +22,12 @@ class TestErrorBar:
         bar = ErrorBar()
         bar.show_error("unexpected token", position=5)
         assert bar.has_class("visible")
-        assert _get_content(bar) == "\u2717 [Line 5] unexpected token"
+        assert _get_content(bar) == "[!] [Line 5] unexpected token"
 
     def test_show_error_without_position_no_line_prefix(self):
         bar = ErrorBar()
         bar.show_error("connection failed")
-        assert _get_content(bar) == "\u2717 connection failed"
+        assert _get_content(bar) == "[!] connection failed"
 
     def test_clear_error_removes_visible_class(self):
         bar = ErrorBar()

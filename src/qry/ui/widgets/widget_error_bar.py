@@ -23,7 +23,7 @@ class ErrorBar(Static):
 
     def show_error(self, message: str, position: int | None = None) -> None:
         prefix = f"[Line {position}] " if position else ""
-        self.update(f"\u2717 {prefix}{message}")
+        self.update(f"[!] {prefix}{message}")
         self.add_class("visible")
 
     def clear_error(self) -> None:

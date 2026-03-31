@@ -8,9 +8,9 @@ from textual.widgets import Static
 from qry.domains.connection.models import ConnectionConfig, DatabaseType
 
 DB_TYPE_ICONS: dict[DatabaseType, str] = {
-    DatabaseType.POSTGRES: "\U0001f418",
-    DatabaseType.MYSQL: "\U0001f42c",
-    DatabaseType.SQLITE: "\U0001f4e6",
+    DatabaseType.POSTGRES: "[pg]",
+    DatabaseType.MYSQL: "[my]",
+    DatabaseType.SQLITE: "[sqlite]",
 }
 
 

@@ -40,7 +40,7 @@ class TestStatusBarConnection:
         )
         bar.set_connection_info(config)
         content = _get_content(bar)
-        assert "\U0001f418" in content
+        assert "[pg]" in content
         assert "db.example.com:5432/myapp" in content
 
     def test_set_connection_info_mysql(self):
@@ -54,7 +54,7 @@ class TestStatusBarConnection:
         )
         bar.set_connection_info(config)
         content = _get_content(bar)
-        assert "\U0001f42c" in content
+        assert "[my]" in content
         assert "mysql.local:3306/shop" in content
 
     def test_set_connection_info_sqlite(self):
@@ -66,7 +66,7 @@ class TestStatusBarConnection:
         )
         bar.set_connection_info(config)
         content = _get_content(bar)
-        assert "\U0001f4e6" in content
+        assert "[sqlite]" in content
         assert "/data/test.db" in content
 
     def test_set_connection_info_sqlite_memory(self):
