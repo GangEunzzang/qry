@@ -70,6 +70,7 @@ class ResultsTable(Static):
         self._search_active: bool = False
         self._search_query: str = ""
         self._all_rows: list[tuple] = []
+        self._displayed_rows: list[tuple] = []
 
     def compose(self) -> ComposeResult:
         yield DataTable(id="results-table")
@@ -135,6 +136,8 @@ class ResultsTable(Static):
         rows = self._sorted_rows()
         if self._search_query:
             rows = self._filter_rows(rows)
+
+        self._displayed_rows = rows
 
         for row in rows:
             self._table.add_row(*[str(v) if v is not None else "NULL" for v in row])
@@ -318,12 +321,13 @@ class ResultsTable(Static):
             self._table.focus()
 
     def _get_row_as_json(self, row_index: int) -> str | None:
-        """Get a row as a JSON string."""
+        """Get a row as a JSON string using the displayed (sorted/filtered) order."""
         if not self._result:
             return None
-        if row_index < 0 or row_index >= len(self._result.rows):
+        rows = self._displayed_rows or self._all_rows or list(self._result.rows)
+        if row_index < 0 or row_index >= len(rows):
             return None
-        row_data = self._result.rows[row_index]
+        row_data = rows[row_index]
         row_dict = {}
         for i, col in enumerate(self._result.columns):
             value = row_data[i] if i < len(row_data) else None
@@ -331,14 +335,15 @@ class ResultsTable(Static):
         return json.dumps(row_dict, ensure_ascii=False, default=str)
 
     def _get_cell_value(self, row: int, col: int) -> str | None:
-        """Get a cell value as a string."""
+        """Get a cell value using the displayed (sorted/filtered) order."""
         if not self._result:
             return None
-        if row < 0 or row >= len(self._result.rows):
+        rows = self._displayed_rows or self._all_rows or list(self._result.rows)
+        if row < 0 or row >= len(rows):
             return None
         if col < 0 or col >= len(self._result.columns):
             return None
-        value = self._result.rows[row][col]
+        value = rows[row][col]
         return str(value) if value is not None else "NULL"
 
     def action_copy(self) -> None:

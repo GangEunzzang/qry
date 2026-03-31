@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich.markup import escape
 from textual.widgets import Static
 
 from qry.domains.connection.models import ConnectionConfig, DatabaseType
@@ -43,12 +44,12 @@ class StatusBar(Static):
     def set_connection_info(self, config: ConnectionConfig) -> None:
         icon = DB_TYPE_ICONS.get(config.db_type, "")
         if config.db_type == DatabaseType.SQLITE:
-            path = config.path or ":memory:"
+            path = escape(config.path or ":memory:")
             self._connection_info = f"{icon} {path}"
         else:
-            host = config.host or "localhost"
+            host = escape(config.host or "localhost")
             port_str = f":{config.port}" if config.port else ""
-            db = config.database or ""
+            db = escape(config.database or "")
             self._connection_info = f"{icon} {host}{port_str}/{db}"
         self._connection_name = config.name
         self._row_count = None
@@ -81,7 +82,7 @@ class StatusBar(Static):
         if self._connection_info:
             parts.append(f"[bold]{self._connection_info}[/bold]")
         elif self._connection_name:
-            parts.append(f"[bold]{self._connection_name}[/bold]")
+            parts.append(f"[bold]{escape(self._connection_name)}[/bold]")
         else:
             parts.append("[dim]No connection — run: qry <database>[/dim]")
 
@@ -90,7 +91,7 @@ class StatusBar(Static):
             parts.append(f"{self._elapsed_ms:.1f}ms")
 
         if self._message:
-            parts.append(self._message)
+            parts.append(escape(self._message))
 
         parts.append("[dim]Ctrl+Enter: Run[/dim]")
 
