@@ -86,6 +86,8 @@ class MainScreen(Widget):
         sidebar = self.query_one("#sidebar", DatabaseSidebar)
         if self._ctx.is_connected and self._ctx.adapter:
             sidebar.set_adapter(self._ctx.adapter)
+            if not sidebar.has_class("visible"):
+                sidebar.add_class("visible")
         else:
             sidebar.clear_adapter()
 

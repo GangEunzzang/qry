@@ -88,7 +88,7 @@ class ResultsTable(Static):
             return
         self._table.clear(columns=True)
         self._table.add_column("  ")
-        self._table.add_row("  Press Ctrl+Enter to run a query")
+        self._table.add_row("  > _ Press Ctrl+Enter to run a query")
 
     def set_result(self, result: QueryResult) -> None:
         self._result = result
@@ -121,7 +121,7 @@ class ResultsTable(Static):
 
         if result.error:
             self._table.add_column("Error Details")
-            self._table.add_row(f"\u2717 {result.error}")
+            self._table.add_row(f"[!] {result.error}")
             self.border_title = "Results \u2014 Error"
             return
 
