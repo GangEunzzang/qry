@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from rich.markup import escape
 from textual.widgets import Static
 
@@ -33,6 +35,8 @@ class StatusBar(Static):
         self._row_count: int | None = None
         self._elapsed_ms: float | None = None
         self._message: str = ""
+        self._running: bool = False
+        self._run_start: float = 0.0
 
     def on_mount(self) -> None:
         self._update_display()
@@ -57,8 +61,21 @@ class StatusBar(Static):
         self._update_display()
 
     def set_query_result(self, row_count: int, elapsed_ms: float) -> None:
+        self._running = False
         self._row_count = row_count
         self._elapsed_ms = elapsed_ms
+        self._update_display()
+
+    def set_running(self) -> None:
+        """Show running state in status bar."""
+        self._running = True
+        self._run_start = time.monotonic()
+        self._row_count = None
+        self._elapsed_ms = None
+        self._update_display()
+
+    def clear_running(self) -> None:
+        self._running = False
         self._update_display()
 
     def clear_connection(self) -> None:
@@ -66,6 +83,7 @@ class StatusBar(Static):
         self._connection_info = None
         self._row_count = None
         self._elapsed_ms = None
+        self._running = False
         self._update_display()
 
     def set_message(self, message: str) -> None:
@@ -86,7 +104,10 @@ class StatusBar(Static):
         else:
             parts.append("[dim]No connection — run: qry <database>[/dim]")
 
-        if self._row_count is not None and self._elapsed_ms is not None:
+        if self._running:
+            elapsed = time.monotonic() - self._run_start
+            parts.append(f"[bold]running...[/bold] {elapsed:.1f}s")
+        elif self._row_count is not None and self._elapsed_ms is not None:
             parts.append(f"{self._row_count} rows")
             parts.append(f"{self._elapsed_ms:.1f}ms")
 

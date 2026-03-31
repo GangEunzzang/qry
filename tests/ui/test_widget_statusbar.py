@@ -199,3 +199,38 @@ class TestStatusBarDisplay:
         assert "8.2ms" in content
         assert "db.host:5432/mydb" in content
         assert "Ctrl+Enter: Run" in content
+
+
+class TestStatusBarRunning:
+    def test_set_running_shows_running(self):
+        bar = StatusBar()
+        bar.set_connection("test")
+        bar.set_running()
+        content = _get_content(bar)
+        assert "running..." in content
+
+    def test_set_running_clears_row_count(self):
+        bar = StatusBar()
+        bar.set_connection("test")
+        bar.set_query_result(42, 5.0)
+        bar.set_running()
+        content = _get_content(bar)
+        assert "42 rows" not in content
+        assert "running..." in content
+
+    def test_clear_running(self):
+        bar = StatusBar()
+        bar.set_connection("test")
+        bar.set_running()
+        bar.clear_running()
+        content = _get_content(bar)
+        assert "running..." not in content
+
+    def test_set_query_result_clears_running(self):
+        bar = StatusBar()
+        bar.set_connection("test")
+        bar.set_running()
+        bar.set_query_result(10, 1.5)
+        content = _get_content(bar)
+        assert "running..." not in content
+        assert "10 rows" in content
