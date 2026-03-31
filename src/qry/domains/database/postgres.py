@@ -78,9 +78,17 @@ class PostgresAdapter(DatabaseAdapter):
 
         except psycopg.Error as e:
             execution_time_ms = (time.perf_counter() - start_time) * 1000
+            position = None
+            if hasattr(e, "diag") and e.diag and e.diag.statement_position:
+                try:
+                    char_offset = int(e.diag.statement_position)
+                    position = sql[:char_offset].count("\n") + 1
+                except (ValueError, TypeError):
+                    pass
             return QueryResult(
                 error=str(e),
                 execution_time_ms=execution_time_ms,
+                error_position=position,
             )
 
     def get_tables(self) -> list[TableInfo]:

@@ -66,7 +66,20 @@ class SQLiteAdapter(DatabaseAdapter):
             return QueryResult(
                 error=str(e),
                 execution_time_ms=execution_time_ms,
+                error_position=self._parse_error_position(sql, str(e)),
             )
+
+    @staticmethod
+    def _parse_error_position(sql: str, error_msg: str) -> int | None:
+        """Try to find the line number where the error occurred."""
+        match = re.search(r'near "([^"]+)"', error_msg)
+        if not match:
+            return None
+        token = match.group(1)
+        for i, line in enumerate(sql.splitlines(), 1):
+            if token in line:
+                return i
+        return 1  # default to line 1 if token found in error but not in SQL
 
     def get_tables(self) -> list[TableInfo]:
         if not self._conn:
