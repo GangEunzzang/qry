@@ -78,7 +78,7 @@ class ExportScreen(ModalScreen[str | None]):
         default_path = str(Path.home() / "Downloads" / f"query_result_{timestamp}.csv")
 
         with Vertical(id="export-dialog"):
-            yield Label("Export Results")
+            yield Label("// export results")
             with RadioSet(id="format-group"):
                 yield RadioButton("CSV", value=True, id="fmt-csv")
                 yield RadioButton("JSON", id="fmt-json")
@@ -86,7 +86,7 @@ class ExportScreen(ModalScreen[str | None]):
             yield Input(value=default_path, placeholder="File path", id="file-path")
             with Horizontal(id="button-row"):
                 yield Button("Cancel", variant="default", id="btn-cancel")
-                yield Button("Export", variant="primary", id="btn-export")
+                yield Button("$ export", variant="primary", id="btn-export")
 
     _FORMAT_MAP: ClassVar[dict[str, str]] = {
         "fmt-csv": "csv",

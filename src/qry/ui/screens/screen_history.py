@@ -60,7 +60,7 @@ class HistoryScreen(ModalScreen[str | None]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="history-dialog"):
-            yield Label("Query History", id="history-title")
+            yield Label("// query history", id="history-title")
             yield Input(placeholder="Search queries...", id="history-search")
             yield OptionList(id="history-list")
             yield Static("Enter: Execute | Escape: Cancel", id="history-hint")
