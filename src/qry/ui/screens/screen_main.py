@@ -6,7 +6,12 @@ from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
 
 from qry.context import AppContext
-from qry.shared.constants import MSG_HELP_MAIN, MSG_NO_CONNECTION
+from qry.shared.constants import (
+    MSG_HELP_MAIN,
+    MSG_NO_CONNECTION,
+    MSG_WELCOME_NO_CONNECTION,
+    TITLE_WELCOME,
+)
 from qry.shared.models import QueryResult
 from qry.ui.screens.screen_export import ExportScreen
 from qry.ui.screens.screen_history import HistoryScreen
@@ -64,8 +69,8 @@ class MainScreen(Widget):
         self._setup_completion()
         if not self._ctx.is_connected:
             self.app.notify(
-                "No database connected. Usage: qry <database.db> or qry -c <connection>",
-                title="Welcome to qry",
+                MSG_WELCOME_NO_CONNECTION,
+                title=TITLE_WELCOME,
             )
 
     def _setup_completion(self) -> None:

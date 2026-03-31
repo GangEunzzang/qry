@@ -6,7 +6,7 @@
 **Why:** 현재 결과가 메모리에 전체 복사됨. 10만 행 이상이면 메모리/성능 문제 발생 (Codex outside voice에서 지적)
 **Pros:** 대용량 결과 처리 가능, 메모리 예산 준수, UX 개선 (즉각 첫 결과 표시)
 **Cons:** 어댑터 인터페이스 변경 필요, 정렬/필터 로직 복잡도 증가
-**Context:** widget_results.py에서 _all_rows에 전체 복사 후 정렬/필터. Textual DataTable의 가상 스크롤 활용 가능.
+**Context:** `widget_results.py`에서 `_all_rows`에 전체 복사 후 정렬/필터. `Textual DataTable`의 가상 스크롤 활용 가능.
 **Effort:** L (human) → M (CC)
 **Priority:** P2
 **Depends on:** PR #1 머지 후
