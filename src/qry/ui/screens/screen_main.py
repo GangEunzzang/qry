@@ -17,6 +17,7 @@ from qry.shared.models import QueryResult
 from qry.ui.screens.screen_export import ExportScreen
 from qry.ui.screens.screen_history import HistoryScreen
 from qry.ui.screens.screen_snippet import SnippetScreen
+from qry.ui.screens.screen_table_workbench import TableWorkbench
 from qry.ui.widgets.widget_editor import SqlEditor
 from qry.ui.widgets.widget_results import ResultsTable
 from qry.ui.widgets.widget_sidebar import DatabaseSidebar
@@ -174,9 +175,10 @@ class MainScreen(Widget):
         self,
         message: DatabaseSidebar.TableSelected,
     ) -> None:
-        editor = self.query_one("#editor", SqlEditor)
-        safe_name = message.table_name.replace('"', '""')
-        editor.set_query(f'SELECT * FROM "{safe_name}" LIMIT 100;')
+        if self._ctx.adapter:
+            self.app.push_screen(
+                TableWorkbench(message.table_name, self._ctx.adapter)
+            )
 
     def on_results_table_export_requested(
         self,
