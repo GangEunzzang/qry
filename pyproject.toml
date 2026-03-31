@@ -77,3 +77,4 @@ exclude = ["tests"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+markers = ["integration: requires Docker database containers (docker-compose.test.yml)"]
