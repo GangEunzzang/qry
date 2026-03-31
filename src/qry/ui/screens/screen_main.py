@@ -6,6 +6,12 @@ from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
 
 from qry.context import AppContext
+from qry.shared.constants import (
+    MSG_HELP_MAIN,
+    MSG_NO_CONNECTION,
+    MSG_WELCOME_NO_CONNECTION,
+    TITLE_WELCOME,
+)
 from qry.shared.models import QueryResult
 from qry.ui.screens.screen_export import ExportScreen
 from qry.ui.screens.screen_history import HistoryScreen
@@ -61,6 +67,11 @@ class MainScreen(Widget):
         self._update_sidebar()
         self._update_statusbar()
         self._setup_completion()
+        if not self._ctx.is_connected:
+            self.app.notify(
+                MSG_WELCOME_NO_CONNECTION,
+                title=TITLE_WELCOME,
+            )
 
     def _setup_completion(self) -> None:
         editor = self.query_one("#editor", SqlEditor)
@@ -94,7 +105,7 @@ class MainScreen(Widget):
         message: SqlEditor.ExecuteRequested,
     ) -> None:
         if not self._ctx.query_service:
-            self.app.notify("No database connection", severity="error")
+            self.app.notify(MSG_NO_CONNECTION, severity="error")
             return
 
         results = self._ctx.query_service.execute_multi(message.query)
@@ -140,7 +151,7 @@ class MainScreen(Widget):
 
     def _show_history(self) -> None:
         if not self._ctx.query_service:
-            self.app.notify("No database connection", severity="error")
+            self.app.notify(MSG_NO_CONNECTION, severity="error")
             return
 
         entries = self._ctx.query_service.get_history(count=100)
@@ -181,7 +192,7 @@ class MainScreen(Widget):
         self.app.push_screen(SnippetScreen(snippets), callback=_on_snippet_dismiss)
 
     def action_help(self) -> None:
-        self.app.notify("Press Ctrl+Enter to run query, Ctrl+B for sidebar")
+        self.app.notify(MSG_HELP_MAIN)
 
     def refresh_connection(self) -> None:
         self._update_sidebar()

@@ -20,6 +20,10 @@ NULL_DISPLAY = "NULL"
 MSG_NO_CONNECTION = "No database connection"
 MSG_HELP_MAIN = "Press Ctrl+Enter to run query, Ctrl+B for sidebar"
 MSG_HELP_SHORTCUTS = "Ctrl+Enter: Run query | Ctrl+B: Toggle sidebar | Ctrl+Q: Quit"
+TITLE_WELCOME = "Welcome to qry"
+MSG_WELCOME_NO_CONNECTION = (
+    "No database connected. Usage: qry <database.db> or qry -c <connection>"
+)
 
 # --- SQL Keywords (for completion) ---
 SQL_KEYWORDS = frozenset(

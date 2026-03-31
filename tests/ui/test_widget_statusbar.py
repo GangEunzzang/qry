@@ -194,7 +194,7 @@ class TestStatusBarDisplay:
         bar.set_connection_info(config)
         bar.set_query_result(50, 8.2)
         content = _get_content(bar)
-        assert " | " in content
+        assert " \u2502 " in content
         assert "50 rows" in content
         assert "8.2ms" in content
         assert "db.host:5432/mydb" in content

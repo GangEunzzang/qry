@@ -28,12 +28,14 @@ class ExportScreen(ModalScreen[str | None]):
         width: 60;
         height: auto;
         max-height: 20;
-        border: thick $primary;
+        border: thick $accent;
         background: $surface;
         padding: 1 2;
     }
 
     #export-dialog Label {
+        text-align: center;
+        text-style: bold;
         margin-bottom: 1;
     }
 
