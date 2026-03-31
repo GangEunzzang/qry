@@ -37,9 +37,9 @@ class TestAvailableThemes:
         assert "nord" in AVAILABLE_THEMES
 
     def test_themes_are_valid_textual_themes(self):
-        from textual.app import App
+        from qry.app import QryApp
 
-        app = App()
+        app = QryApp()
         builtin = app.available_themes
         for theme_name in AVAILABLE_THEMES:
             assert theme_name in builtin, f"{theme_name} is not a valid Textual theme"
@@ -72,5 +72,5 @@ class TestAppThemeIntegration:
     def test_settings_default_theme(self):
         from qry.shared.constants import DEFAULT_THEME
 
-        assert DEFAULT_THEME == "textual-dark"
+        assert DEFAULT_THEME == "qry-dark"
         assert DEFAULT_THEME in AVAILABLE_THEMES
