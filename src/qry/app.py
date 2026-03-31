@@ -2,13 +2,27 @@
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header
+from textual.theme import Theme
 
 from qry.context import AppContext
 from qry.domains.connection.models import ConnectionConfig, DatabaseType
 from qry.shared.constants import AVAILABLE_THEMES
 from qry.ui.screens.screen_main import MainScreen
 from qry.ui.screens.screen_theme import ThemeScreen
+from qry.ui.widgets.widget_header import QryHeader
+
+QRY_DARK = Theme(
+    name="qry-dark",
+    primary="#10B981",
+    secondary="#8B949E",
+    accent="#10B981",
+    background="#0D1117",
+    surface="#161B22",
+    error="#EF4444",
+    success="#10B981",
+    warning="#F59E0B",
+    dark=True,
+)
 
 
 class QryApp(App):
@@ -38,15 +52,15 @@ class QryApp(App):
         super().__init__()
         self._initial_connection = connection
         self._ctx = ctx or AppContext.create()
+        self.register_theme(QRY_DARK)
 
     @property
     def ctx(self) -> AppContext:
         return self._ctx
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield QryHeader()
         yield MainScreen(ctx=self._ctx)
-        yield Footer()
 
     def on_mount(self) -> None:
         self._apply_theme(self._ctx.settings.theme)
