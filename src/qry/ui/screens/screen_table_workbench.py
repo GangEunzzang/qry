@@ -7,7 +7,6 @@ from textual.screen import ModalScreen
 from textual.widgets import DataTable, Label, Static, TabbedContent, TabPane
 
 from qry.domains.database.base import DatabaseAdapter
-from qry.shared.types import ForeignKeyInfo
 
 
 class TableWorkbench(ModalScreen[None]):
