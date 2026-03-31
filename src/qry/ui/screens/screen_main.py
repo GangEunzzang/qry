@@ -4,6 +4,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
+from textual.worker import Worker, WorkerState
 
 from qry.context import AppContext
 from qry.shared.constants import (
@@ -54,6 +55,7 @@ class MainScreen(Widget):
     def __init__(self, ctx: AppContext) -> None:
         super().__init__()
         self._ctx = ctx
+        self._query_worker: Worker | None = None
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="main-container"):
@@ -110,7 +112,48 @@ class MainScreen(Widget):
             self.app.notify(MSG_NO_CONNECTION, severity="error")
             return
 
-        results = self._ctx.query_service.execute_multi(message.query)
+        # Cancel any running query
+        if self._query_worker and self._query_worker.state == WorkerState.RUNNING:
+            self._query_worker.cancel()
+
+        # Show running state
+        statusbar = self.query_one("#statusbar", StatusBar)
+        statusbar.set_running()
+
+        # Clear previous errors
+        editor = self.query_one("#editor", SqlEditor)
+        editor.clear_error()
+
+        # Run query in background thread (non-blocking)
+        query_service = self._ctx.query_service
+        sql = message.query
+
+        def _execute() -> list[QueryResult]:
+            return query_service.execute_multi(sql)
+
+        self._query_worker = self.run_worker(_execute, thread=True)
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Handle async query completion."""
+        if event.worker is not self._query_worker:
+            return
+
+        if event.state == WorkerState.SUCCESS:
+            results = event.worker.result
+            if not results:
+                return
+            self._display_results(results)
+        elif event.state == WorkerState.ERROR:
+            statusbar = self.query_one("#statusbar", StatusBar)
+            statusbar.clear_running()
+            error_msg = str(event.worker.error) if event.worker.error else "Query failed"
+            self.app.notify(f"[!] {error_msg}", severity="error")
+        elif event.state == WorkerState.CANCELLED:
+            statusbar = self.query_one("#statusbar", StatusBar)
+            statusbar.clear_running()
+
+    def _display_results(self, results: list[QueryResult]) -> None:
+        """Display query results in the results table."""
         results_table = self.query_one("#results", ResultsTable)
 
         if len(results) == 1:
